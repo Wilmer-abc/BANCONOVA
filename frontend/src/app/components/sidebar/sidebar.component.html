@@ -1,0 +1,146 @@
+<aside class="sidebar" [class.collapsed]="collapsed">
+  
+  <!-- Header del sidebar -->
+  <div class="sidebar-header">
+    <div class="logo-container" (click)="navigateToDashboard()">
+      <img src="assets/images/BancoNOVA.png" alt="Banco NOVA" class="logo">
+      <div class="title-container" *ngIf="!collapsed">
+        <span class="bank-name">Banco NOVA</span>
+        <span class="system-subtitle">Sistema de Gestión SGSI</span>
+      </div>
+    </div>
+    <button class="toggle-sidebar" (click)="toggleSidebar()" [attr.aria-label]="collapsed ? 'Expandir menú' : 'Colapsar menú'">
+      <i class="material-icons">{{ collapsed ? 'menu' : 'chevron_left' }}</i>
+    </button>
+  </div>
+
+  <!-- Perfil del usuario (solo visible cuando no está colapsado) -->
+  <div class="user-profile" *ngIf="!collapsed && usuario">
+    <div class="user-avatar">
+      <img [src]="usuario.avatar" alt="Avatar" *ngIf="usuario.avatar; else avatarPlaceholder">
+      <ng-template #avatarPlaceholder>
+        <div class="avatar-placeholder" [style.background]="getAvatarColor()">
+          {{ getUserInitials() }}
+        </div>
+      </ng-template>
+    </div>
+    <div class="user-info">
+      <h4>{{ usuario.nombre || 'Usuario' }}</h4>
+      <p class="user-role">{{ usuario.rol || 'Usuario' }}</p>
+      <p class="user-email">{{ usuario.correo || '' }}</p>
+    </div>
+  </div>
+
+  <!-- Versión mini del perfil cuando está colapsado -->
+  <div class="user-profile-mini" *ngIf="collapsed && usuario" (click)="showUserTooltip = !showUserTooltip">
+    <div class="user-avatar mini">
+      <div class="avatar-placeholder small" [style.background]="getAvatarColor()">
+        {{ getUserInitials() }}
+      </div>
+    </div>
+    
+    <!-- Tooltip con información del usuario -->
+    <div class="user-tooltip" *ngIf="showUserTooltip">
+      <div class="tooltip-content">
+        <p class="tooltip-name">{{ usuario.nombre }}</p>
+        <p class="tooltip-email">{{ usuario.correo }}</p>
+        <p class="tooltip-role">{{ usuario.rol }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Menú de navegación principal -->
+  <nav class="sidebar-nav">
+    <ul>
+      <li *ngFor="let item of menuItems" 
+          [class.active]="isActive(item.route) && !item.children"
+          [class.disabled]="item.disabled"
+          [class.has-children]="item.children && item.children.length > 0"
+          [class.expanded]="item.expanded">
+        
+        <!-- Item principal (puede tener submenú o ser link directo) -->
+        <a (click)="item.children ? toggleSubMenu(item, $event) : navigateTo(item.route)"
+           [routerLink]="!item.children ? item.route : null"
+           [queryParams]="item.queryParams" 
+           [fragment]="item.fragment">
+          
+          <i class="material-icons" [style.color]="item.iconColor">{{ item.icon }}</i>
+          
+          <span class="menu-label" *ngIf="!collapsed">{{ item.label }}</span>
+          
+          <!-- Flecha para submenús -->
+          <span class="submenu-arrow" *ngIf="item.children && !collapsed">
+            <i class="material-icons">{{ item.expanded ? 'expand_less' : 'expand_more' }}</i>
+          </span>
+          
+          <!-- Badge -->
+          <span class="badge" *ngIf="item.badge" 
+                [class.badge-danger]="item.badgeType === 'danger'" 
+                [class.badge-warning]="item.badgeType === 'warning'"
+                [class.badge-success]="item.badgeType === 'success'"
+                [class.badge-info]="item.badgeType === 'info'">
+            {{ item.badge }}
+          </span>
+          
+          <!-- Tooltip para modo colapsado -->
+          <span class="menu-tooltip" *ngIf="collapsed">{{ item.label }}</span>
+        </a>
+
+        <!-- Submenú (hijos) -->
+        <ul class="submenu" *ngIf="item.children && item.expanded && !collapsed">
+          <li *ngFor="let child of item.children" 
+              [class.active]="isActive(child.route)"
+              [class.disabled]="child.disabled">
+            <a (click)="navigateTo(child.route)" [routerLink]="child.route">
+              <i class="material-icons submenu-icon">{{ child.icon }}</i>
+              <span class="submenu-label">{{ child.label }}</span>
+              <span class="badge" *ngIf="child.badge" [class.badge-danger]="child.badgeType === 'danger'">
+                {{ child.badge }}
+              </span>
+            </a>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- Menú inferior -->
+  <div class="sidebar-footer">
+    <ul>
+      <!-- Configuración -->
+      <li [class.active]="isActive('/dashboard/configuracion')" (click)="navigateTo('/dashboard/configuracion')">
+        <a [routerLink]="'/dashboard/configuracion'">
+          <i class="material-icons">settings</i>
+          <span class="menu-label" *ngIf="!collapsed">Configuración</span>
+          <span class="menu-tooltip" *ngIf="collapsed">Configuración</span>
+        </a>
+      </li>
+
+      <!-- Ayuda -->
+      <!-- <li (click)="openHelp()">
+        <a>
+          <i class="material-icons">help</i>
+          <span class="menu-label" *ngIf="!collapsed">Ayuda</span>
+          <span class="menu-tooltip" *ngIf="collapsed">Ayuda</span>
+        </a>
+      </li> -->
+
+      <!-- Cerrar sesión -->
+      <li class="logout" (click)="logout()">
+        <a>
+          <i class="material-icons">logout</i>
+          <span class="menu-label" *ngIf="!collapsed">Cerrar sesión</span>
+          <span class="menu-tooltip" *ngIf="collapsed">Cerrar sesión</span>
+        </a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Versión del sistema -->
+  <div class="system-version" *ngIf="!collapsed">
+    <p>Versión {{ version }}</p>
+    <p class="environment" [class.production]="environment === 'production'">
+      {{ environment === 'production' ? 'PROD' : 'DEV' }}
+    </p>
+  </div>
+</aside>

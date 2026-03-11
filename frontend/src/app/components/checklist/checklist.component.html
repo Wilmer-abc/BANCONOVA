@@ -1,0 +1,118 @@
+<div class="checklist-container">
+  <!-- Header -->
+  <div class="header">
+    <h1>Gestión de Checklists</h1>
+    <button class="btn-primary" (click)="openCreateModal()">
+      <i class="fas fa-plus"></i> Nuevo Checklist
+    </button>
+  </div>
+
+  <!-- Loading Indicator -->
+  <div class="loading-spinner" *ngIf="loading">
+    <div class="spinner"></div>
+    <p>Cargando checklists...</p>
+  </div>
+
+  <!-- Checklists Grid -->
+  <div class="checklists-grid" *ngIf="!loading">
+    <div class="checklist-card" *ngFor="let checklist of checklists">
+      <div class="card-header">
+        <h3>{{ checklist.nombre }}</h3>
+        <span class="area-badge">{{ getAreaName(checklist.id_area) }}</span>
+      </div>
+      
+      <div class="card-body">
+        <p class="description">{{ checklist.descripcion || 'Sin descripción' }}</p>
+        <p class="meta">
+          <small>Creado por: {{ checklist.creador_nombre || 'Usuario' }}</small><br>
+          <small>Fecha: {{ checklist.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</small>
+        </p>
+      </div>
+      
+      <div class="card-actions">
+        <button class="btn-edit" (click)="openEditModal(checklist)" title="Editar">
+          <i class="fas fa-edit"></i>
+        </button>
+        <button class="btn-delete" (click)="deleteChecklist(checklist.id_checklist!)" title="Eliminar">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="checklists.length === 0">
+      <i class="fas fa-clipboard-list"></i>
+      <h3>No hay checklists</h3>
+      <p>Comienza creando un nuevo checklist</p>
+      <button class="btn-primary" (click)="openCreateModal()">
+        Crear Checklist
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal for Create/Edit -->
+  <div class="modal" [class.show]="showModal" (click)="closeModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ isEditing ? 'Editar' : 'Nuevo' }} Checklist</h2>
+        <button class="close-btn" (click)="closeModal()">&times;</button>
+      </div>
+
+      <form [formGroup]="checklistForm" (ngSubmit)="saveChecklist()">
+        <div class="form-group">
+          <label for="nombre">Nombre *</label>
+          <input 
+            type="text" 
+            id="nombre" 
+            formControlName="nombre" 
+            placeholder="Ingrese el nombre del checklist"
+            [class.invalid]="nombre?.invalid && nombre?.touched"
+          >
+          <div class="error-message" *ngIf="nombre?.invalid && nombre?.touched">
+            <span *ngIf="nombre?.errors?.['required']">El nombre es requerido</span>
+            <span *ngIf="nombre?.errors?.['maxlength']">Máximo 150 caracteres</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="descripcion">Descripción</label>
+          <textarea 
+            id="descripcion" 
+            formControlName="descripcion" 
+            rows="3"
+            placeholder="Ingrese una descripción (opcional)"
+          ></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="id_area">Área *</label>
+<select 
+  id="id_area" 
+  formControlName="id_area"
+>
+
+  <option [ngValue]="null">Seleccione un área</option>
+
+  <option *ngFor="let area of areas" [ngValue]="area.id_area">
+    {{ area.nombre_area }}
+  </option>
+
+</select>
+
+          <div class="error-message" *ngIf="id_area?.invalid && id_area?.touched">
+            El área es requerida
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" (click)="closeModal()">
+            Cancelar
+          </button>
+          <button type="submit" class="btn-primary" [disabled]="checklistForm.invalid">
+            {{ isEditing ? 'Actualizar' : 'Guardar' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

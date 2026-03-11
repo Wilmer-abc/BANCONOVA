@@ -1,0 +1,172 @@
+<div class="login-wrapper">
+  <div class="login-card">
+    
+    <!-- Logo y título -->
+    <div class="brand-section">
+      <div class="logo-container">
+        <img src="assets/images/BancoNOVA.png" alt="Banco NOVA" class="logo">
+      </div>
+      <h1 class="bank-name">Banco NOVA</h1>
+      <p class="welcome-text">Tu seguridad es nuestra prioridad</p>
+    </div>
+
+    <!-- Formulario de login -->
+    <form (ngSubmit)="login()" class="login-form" #loginForm="ngForm">
+      
+      <!-- Campo de correo -->
+      <div class="input-group">
+        <label for="correo" class="input-label">Correo electrónico</label>
+        <div class="input-field">
+          <i class="icon material-icons"></i>
+          <input 
+            type="email" 
+            id="correo"
+            placeholder="ejemplo@correo.com" 
+            [(ngModel)]="correo" 
+            name="correo" 
+            required
+            #correoInput="ngModel"
+            [class.error]="correoInput.invalid && correoInput.touched"
+          >
+        </div>
+        <div class="error-message" *ngIf="correoInput.invalid && correoInput.touched">
+          El correo es obligatorio
+        </div>
+      </div>
+
+      <!-- Campo de contraseña con ojito -->
+      <div class="input-group">
+        <label for="password" class="input-label">Contraseña</label>
+        <div class="input-field">
+          <i class="icon material-icons"></i>
+          <input 
+            [type]="showPassword ? 'text' : 'password'" 
+            id="password"
+            placeholder="••••••••" 
+            [(ngModel)]="password" 
+            name="password" 
+            required
+            #passwordInput="ngModel"
+            [class.error]="passwordInput.invalid && passwordInput.touched"
+          >
+        <button 
+          type="button" 
+          class="password-toggle-btn" 
+          (click)="togglePasswordVisibility()"
+          [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+        >
+          <i class="fas" [ngClass]="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+        </button>
+        </div>
+        <div class="error-message" *ngIf="passwordInput.invalid && passwordInput.touched">
+          La contraseña es obligatoria
+        </div>
+      </div>
+
+      <!-- Opciones adicionales -->
+      <div class="form-options">
+        <label class="checkbox-container">
+          <input type="checkbox" [(ngModel)]="rememberMe" name="rememberMe">
+          <span class="checkmark"></span>
+          <span class="checkbox-text">Recordarme</span>
+        </label>
+        <a href="#" class="forgot-password" (click)="openForgotPassword($event)">
+          ¿Olvidaste tu contraseña?
+        </a>
+      </div>
+
+      <!-- Botón de login con estado de carga -->
+      <button 
+        type="submit" 
+        class="btn-login" 
+        [disabled]="loginForm.invalid || isLoading"
+      >
+        <span *ngIf="!isLoading">Iniciar Sesión</span>
+        <div class="spinner" *ngIf="isLoading"></div>
+      </button>
+
+      <!-- Mensaje de error general -->
+      <div class="alert alert-error" *ngIf="errorMessage">
+        <i class="material-icons">error</i>
+        {{ errorMessage }}
+      </div>
+
+    </form>
+
+    <!-- Enlace de registro -->
+    <!-- <div class="register-link">
+      ¿No tienes una cuenta? 
+      <a href="#" (click)="register($event)">Regístrate aquí</a>
+    </div> -->
+
+    <!-- Medidas de seguridad -->
+    <!-- <div class="security-badges">
+      <div class="security-item">
+        <i class="material-icons">verified_user</i>
+        <span>Conexión segura</span>
+      </div>
+      <div class="security-item">
+        <i class="material-icons">encrypted</i>
+        <span>Datos encriptados</span>
+      </div>
+    </div> -->
+
+  </div>
+
+  <!-- Footer -->
+  <div class="login-footer">
+    <p>© 2026 Banco NOVA. Todos los derechos reservados.</p>
+    <div class="footer-links">
+      <a href="#">Términos y condiciones</a>
+      <a href="#">Política de privacidad</a>
+      <a href="#">Contacto</a>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de recuperación de contraseña -->
+<div class="modal" [class.show]="showForgotPassword" (click)="closeModalOnOverlay($event)">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Recuperar contraseña</h3>
+      <button class="close-btn" (click)="closeForgotPassword()">
+        <i class="material-icons">close</i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p>Ingresa tu correo electrónico y te enviaremos instrucciones para restablecer tu contraseña.</p>
+      
+      <div class="input-group">
+        <label for="reset-email">Correo electrónico</label>
+        <input 
+          type="email" 
+          id="reset-email" 
+          [(ngModel)]="resetEmail" 
+          placeholder="tucorreo@ejemplo.com"
+        >
+      </div>
+
+      <div class="alert alert-success" *ngIf="resetSuccess">
+        <i class="material-icons">check_circle</i>
+        Se han enviado las instrucciones a tu correo
+      </div>
+
+      <div class="alert alert-error" *ngIf="resetError">
+        <i class="material-icons">error</i>
+        {{ resetError }}
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeForgotPassword()">Cancelar</button>
+      <button 
+        class="btn-primary" 
+        (click)="sendResetEmail()" 
+        [disabled]="!resetEmail || resetLoading"
+      >
+        <span *ngIf="!resetLoading">Enviar instrucciones</span>
+        <div class="spinner small" *ngIf="resetLoading"></div>
+      </button>
+    </div>
+  </div>
+</div>

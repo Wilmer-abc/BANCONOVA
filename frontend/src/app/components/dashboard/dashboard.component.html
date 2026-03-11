@@ -1,0 +1,251 @@
+<!-- Contenedor principal con flexbox -->
+<div class="dashboard-layout">
+  
+  <!-- Sidebar a la izquierda -->
+  <app-sidebar 
+    [(collapsed)]="sidebarCollapsed"
+    (menuItemClicked)="onMenuItemClicked($event)">
+  </app-sidebar>
+
+  <!-- Contenido principal a la derecha -->
+  <main class="main-content" [class.expanded]="sidebarCollapsed">
+    
+    <!-- Header del dashboard -->
+    <div class="dashboard-header">
+      <div class="header-left">
+        <button class="mobile-menu-btn" (click)="toggleSidebarMobile()">
+          <i class="material-icons">menu</i>
+        </button>
+        <div>
+          <h1 class="welcome-message">Bienvenido de nuevo, {{ userName || 'Usuario' }}</h1>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="date-display">
+          <i class="material-icons">calendar_today</i>
+          <span>{{ fechaActual | date:'EEEE, d MMMM yyyy' }}</span>
+        </div>
+        <button class="btn-refresh" (click)="refrescarDashboard()" [disabled]="loading">
+          <i class="material-icons">{{ loading ? 'sync' : 'refresh' }}</i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Estado de carga -->
+    <div class="loading-overlay" *ngIf="loading">
+      <div class="spinner"></div>
+      <p>Cargando datos del dashboard...</p>
+    </div>
+
+    <!-- Error message -->
+    <div class="alert alert-error" *ngIf="error">
+      <i class="material-icons">error</i>
+      {{ error }}
+    </div>
+
+    <!-- Contenido del dashboard -->
+    <div class="dashboard-content" *ngIf="esRutaDashboard() && !loading && !error">
+      
+      <!-- Tarjetas de resumen -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon areas">
+            <i class="material-icons">business</i>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Total de Áreas</span>
+            <span class="stat-value">{{ stats.totalAreas }}</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon checklist">
+            <i class="material-icons">checklist</i>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Checklist Creados</span>
+            <span class="stat-value">{{ stats.totalChecklists }}</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon ejecuciones">
+            <i class="material-icons">play_arrow</i>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Ejecuciones</span>
+            <span class="stat-value">{{ stats.totalEjecuciones }}</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon incidentes">
+            <i class="material-icons">warning</i>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Incidentes</span>
+            <span class="stat-value">{{ stats.totalIncidentes }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alertas rápidas -->
+      <div class="alerts-section" *ngIf="stats.incidentesAltoRiesgo > 0 || stats.checklistPendientes > 0">
+        <div class="alert-card alert-danger" *ngIf="stats.incidentesAltoRiesgo > 0">
+          <i class="material-icons">error</i>
+          <div class="alert-content">
+            <strong>{{ stats.incidentesAltoRiesgo }} incidente(s) de ALTO RIESGO</strong>
+            <span>Requieren atención inmediata</span>
+          </div>
+        </div>
+
+        <div class="alert-card alert-warning" *ngIf="stats.checklistPendientes > 0">
+          <i class="material-icons">pending_actions</i>
+          <div class="alert-content">
+            <strong>{{ stats.checklistPendientes }} checklist pendientes</strong>
+            <span>Por ejecutar esta semana</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráficas y estadísticas -->
+      <div class="charts-section">
+        <!-- Checklist por área -->
+        <div class="chart-card">
+          <div class="card-header">
+            <h3>Checklist ejecutados por área</h3>
+            <i class="material-icons">bar_chart</i>
+          </div>
+          <div class="chart-body">
+            <div class="progress-bars">
+              <div class="progress-item" *ngFor="let item of checklistPorArea">
+                <div class="progress-label">
+                  <span>{{ item.area }}</span>
+                  <span>{{ item.ejecutados }} ejecuciones</span>
+                </div>
+                <div class="progress-bar-container">
+                  <div class="progress-bar" 
+                       [style.width.%]="(item.ejecutados / 30) * 100"
+                       [style.background]="'linear-gradient(90deg, #0A2472, #0E6BA8)'">
+                  </div>
+                </div>
+                <div class="progress-mini-stats">
+                  <span class="pendientes">{{ item.pendientes }} pendientes</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Incidentes por nivel de riesgo -->
+        <div class="chart-card">
+          <div class="card-header">
+            <h3>Incidentes por nivel de riesgo</h3>
+            <i class="material-icons">pie_chart</i>
+          </div>
+          <div class="chart-body">
+            <div class="risk-legend">
+              <div class="risk-item" *ngFor="let item of incidentesPorRiesgo">
+                <span class="risk-color" [style.background]="item.color"></span>
+                <span class="risk-label">{{ item.nivel }}: {{ item.cantidad }}</span>
+              </div>
+            </div>
+            <div class="risk-bars">
+              <div class="risk-bar-item" *ngFor="let item of incidentesPorRiesgo">
+                <div class="risk-bar-label">{{ item.nivel }}</div>
+                <div class="risk-bar-container">
+                  <div class="risk-bar" 
+                       [style.width.%]="(item.cantidad / 5) * 100"
+                       [style.background]="item.color">
+                  </div>
+                  <span class="risk-bar-value">{{ item.cantidad }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actividad Reciente -->
+      <div class="activity-section">
+        <div class="section-header">
+          <h2>📋 Actividad Reciente</h2>
+          <div class="section-filters">
+            <button class="filter-btn active">Todos</button>
+            <button class="filter-btn">Checklists</button>
+            <button class="filter-btn">Incidentes</button>
+            <button class="filter-btn">Formularios</button>
+          </div>
+        </div>
+
+        <div class="activity-table-container">
+          <table class="activity-table">
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Acción</th>
+                <th>Detalle</th>
+                <th>Fecha</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let act of actividadesRecientes">
+                <td>
+                  <div class="user-cell">
+                    <div class="user-avatar-small" [style.background]="getColorForModulo(act.modulo)">
+                      {{ (act.usuario && act.usuario.length > 0 ? act.usuario.charAt(0) : '?') | uppercase }}
+                    </div>
+                    <span>{{ act.usuario || 'Usuario' }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="action-badge" [class.badge-checklist]="act.modulo === 'checklist'"
+                                             [class.badge-incidente]="act.modulo === 'incidente'"
+                                             [class.badge-formulario]="act.modulo === 'formulario'">
+                    <i class="material-icons small">{{ getIconForModulo(act.modulo) }}</i>
+                    {{ act.accion }}
+                  </span>
+                </td>
+                <td>
+                  <span class="action-detail">{{ act.detalle || '-' }}</span>
+                </td>
+                <td>
+                  <span class="action-date">{{ formatFecha(act.fecha) }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="view-more">
+          <a href="#" class="view-more-link">Ver toda la actividad <i class="material-icons">arrow_forward</i></a>
+        </div>
+      </div>
+
+      <!-- Checklist pendientes rápidos -->
+      <div class="quick-actions">
+        <div class="quick-card">
+          <i class="material-icons">add_task</i>
+          <span>Nuevo Checklist</span>
+        </div>
+        <div class="quick-card">
+          <i class="material-icons">add_alert</i>
+          <span>Reportar Incidente</span>
+        </div>
+        <div class="quick-card">
+          <i class="material-icons">description</i>
+          <span>Crear Formulario</span>
+        </div>
+        <div class="quick-card">
+          <i class="material-icons">assessment</i>
+          <span>Ver Reportes</span>
+        </div>
+      </div>
+    </div>
+
+  <div class="child-route-content" *ngIf="!esRutaDashboard()">
+    <router-outlet></router-outlet>
+  </div>
+  
+  </main>
+</div>

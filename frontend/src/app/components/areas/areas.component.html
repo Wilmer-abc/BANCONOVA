@@ -1,0 +1,244 @@
+<div class="areas-container">
+  
+  <!-- Header con título y acciones -->
+  <div class="areas-header">
+    <div class="header-left">
+      <h1>
+        <i class="material-icons">business</i>
+        Gestiona las áreas del banco
+      </h1>
+    </div>
+    <div class="header-actions">
+      <button class="btn-refresh" (click)="refrescar()" [disabled]="loading">
+        <i class="material-icons">{{ loading ? 'sync' : 'refresh' }}</i>
+      </button>
+      <button class="btn-primary" (click)="abrirModalNueva()">
+        <i class="material-icons">add</i>
+        Nueva Área
+      </button>
+    </div>
+  </div>
+
+  <!-- Mensajes de éxito/error -->
+  <div class="alert alert-success" *ngIf="successMessage">
+    <i class="material-icons">check_circle</i>
+    {{ successMessage }}
+  </div>
+
+  <div class="alert alert-error" *ngIf="error && !loading">
+    <i class="material-icons">error</i>
+    {{ error }}
+  </div>
+
+  <!-- Barra de búsqueda -->
+  <div class="search-bar">
+    <div class="search-input-container">
+      <i class="material-icons search-icon">search</i>
+      <input 
+        type="text" 
+        class="search-input" 
+        placeholder="Buscar áreas por nombre o descripción..."
+        [(ngModel)]="searchTerm"
+      >
+    </div>
+    <div class="results-count" *ngIf="!loading">
+      {{ areasFiltradas.length }} área(s) encontrada(s)
+    </div>
+  </div>
+
+  <!-- Estado de carga -->
+  <div class="loading-container" *ngIf="loading">
+    <div class="spinner"></div>
+    <p>Cargando áreas...</p>
+  </div>
+
+  <!-- Tabla de áreas -->
+  <div class="table-container" *ngIf="!loading">
+    <table class="areas-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre del Área</th>
+          <th>Descripción</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let area of areasPaginadas">
+          <td class="id-cell">#{{ area.id_area }}</td>
+          <td class="nombre-cell">
+            <strong>{{ area.nombre_area }}</strong>
+          </td>
+          <td class="descripcion-cell">
+            {{ area.descripcion || 'Sin descripción' }}
+          </td>
+          <td class="acciones-cell">
+            <button class="btn-icon btn-edit" (click)="abrirModalEditar(area)" title="Editar área">
+              <i class="material-icons">edit</i>
+            </button>
+            <button class="btn-icon btn-delete" (click)="confirmarEliminar(area)" title="Eliminar área">
+              <i class="material-icons">delete</i>
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="areasPaginadas.length === 0">
+          <td colspan="4" class="empty-state">
+            <i class="material-icons empty-icon">business</i>
+            <p>No hay áreas registradas</p>
+            <button class="btn-primary btn-small" (click)="abrirModalNueva()">
+              Crear primera área
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Paginación -->
+  <div class="pagination" *ngIf="paginas.length > 1">
+    <button 
+      class="page-btn" 
+      [disabled]="currentPage === 1"
+      (click)="cambiarPagina(currentPage - 1)"
+    >
+      <i class="material-icons">chevron_left</i>
+    </button>
+    
+    <button 
+      *ngFor="let page of paginas" 
+      class="page-btn" 
+      [class.active]="currentPage === page"
+      (click)="cambiarPagina(page)"
+    >
+      {{ page }}
+    </button>
+    
+    <button 
+      class="page-btn" 
+      [disabled]="currentPage === paginas.length"
+      (click)="cambiarPagina(currentPage + 1)"
+    >
+      <i class="material-icons">chevron_right</i>
+    </button>
+  </div>
+
+  <!-- Modal para crear/editar área -->
+  <div class="modal" *ngIf="showModal" (click)="cerrarModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ modalTitle }}</h2>
+        <button class="btn-close" (click)="cerrarModal()">
+          <i class="material-icons">close</i>
+        </button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="alert alert-error" *ngIf="error">
+          <i class="material-icons">error</i>
+          {{ error }}
+        </div>
+        
+        <div class="form-group">
+          <label for="nombre">
+            Nombre del Área <span class="required">*</span>
+          </label>
+          <input 
+            type="text" 
+            id="nombre"
+            class="form-control" 
+            [(ngModel)]="areaForm.nombre_area"
+            placeholder="Ej: Caja, Seguridad Informática, RRHH..."
+            maxlength="100"
+          >
+          <small class="form-text">Máximo 100 caracteres</small>
+        </div>
+        
+        <div class="form-group">
+          <label for="descripcion">Descripción</label>
+          <textarea 
+            id="descripcion"
+            class="form-control" 
+            [(ngModel)]="areaForm.descripcion"
+            placeholder="Descripción del área y sus funciones..."
+            rows="4"
+          ></textarea>
+          <small class="form-text">Opcional - Describe el propósito del área</small>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="cerrarModal()" [disabled]="loading">
+          Cancelar
+        </button>
+        <button class="btn-primary" (click)="guardarArea()" [disabled]="loading">
+          <i class="material-icons" *ngIf="loading">sync</i>
+          <span>{{ loading ? 'Guardando...' : (isEditing ? 'Actualizar' : 'Crear') }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de confirmación para eliminar -->
+  <div class="modal" *ngIf="showDeleteModal" (click)="cerrarModalEliminar()">
+    <div class="modal-content modal-small" (click)="$event.stopPropagation()">
+      <div class="modal-header modal-header-danger">
+        <h2>
+          <i class="material-icons">warning</i>
+          Confirmar Eliminación
+        </h2>
+        <button class="btn-close" (click)="cerrarModalEliminar()">
+          <i class="material-icons">close</i>
+        </button>
+      </div>
+      
+      <div class="modal-body">
+        <p class="confirm-message">
+          ¿Estás seguro de eliminar el área <strong>"{{ areaToDelete?.nombre_area }}"</strong>?
+        </p>
+        
+        <!-- Verificación de dependencias -->
+        <div class="dependencies-check" *ngIf="dependencias">
+          <div class="alert alert-warning" *ngIf="dependencias.total_checklists > 0 || dependencias.total_usuarios > 0 || dependencias.total_ejecuciones > 0">
+            <i class="material-icons">error_outline</i>
+            <p>Esta área tiene dependencias y no puede ser eliminada:</p>
+            <ul>
+              <li *ngIf="dependencias.total_checklists > 0">
+                {{ dependencias.total_checklists }} checklist(s) asociados
+              </li>
+              <li *ngIf="dependencias.total_usuarios > 0">
+                {{ dependencias.total_usuarios }} usuario(s) asignados
+              </li>
+              <li *ngIf="dependencias.total_ejecuciones > 0">
+                {{ dependencias.total_ejecuciones }} ejecución(es) de checklist
+              </li>
+            </ul>
+          </div>
+          
+          <div class="alert alert-success" *ngIf="dependencias.total_checklists === 0 && dependencias.total_usuarios === 0 && dependencias.total_ejecuciones === 0">
+            <i class="material-icons">check_circle</i>
+            <p>El área no tiene dependencias y puede ser eliminada.</p>
+          </div>
+        </div>
+        
+        <div class="delete-loading" *ngIf="deleteLoading">
+          <div class="spinner-small"></div>
+          <p>Verificando dependencias...</p>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="cerrarModalEliminar()" [disabled]="deleteLoading">
+          Cancelar
+        </button>
+        <button 
+          class="btn-danger" 
+          (click)="eliminarArea()" 
+          [disabled]="deleteLoading || (dependencias && (dependencias.total_checklists > 0 || dependencias.total_usuarios > 0 || dependencias.total_ejecuciones > 0))"
+        >
+          <i class="material-icons" *ngIf="deleteLoading">sync</i>
+          <span>{{ deleteLoading ? 'Eliminando...' : 'Eliminar' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
