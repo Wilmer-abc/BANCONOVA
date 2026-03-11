@@ -1,0 +1,21 @@
+backend
+Instala las librerías necesarias:
+1. npm init -y
+2. npm install express mysql2 cors dotenv bcryptjs jsonwebtoken
+3. npm install nodemon --save-dev
+3 npm install jsonwebtoken bcryptjs dotenv
+4. npm install express cors dotenv jsonwebtoken bcryptjs express-validator
+5. npm install -D nodemon
+6. npm install mysql2 jsonwebtoken dotenv
+
+instalamos angular globalmente
+1. npm install -g @angular/cli
+
+
+
+frontend
+1. ng new banco-nova-frontend
+de las preguntas que nos hace seleccionamos 2. ❯ CSS             [ https://developer.mozilla.org/docs/Web/CSS 
+respondemos ? Do you want to enable Server-Side Rendering (SSR) and Static Site Generation (SSG/Prerendering)? (y/N)  con yes
+3. npm list zone.js
+4. npm install sweetalert2
