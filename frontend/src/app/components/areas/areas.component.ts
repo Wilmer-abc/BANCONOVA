@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule, Router } from '@angular/router'; // Añade Router
+import { RouterModule, Router } from '@angular/router';
 import { AreasService, Area } from '../../services/areas.service';
 
 @Component({
@@ -13,10 +13,7 @@ import { AreasService, Area } from '../../services/areas.service';
 })
 export class AreasComponent implements OnInit {
   
-  // Lista de áreas
   areas: Area[] = [];
-  
-  // Estados
   loading: boolean = false;
   error: string = '';
   successMessage: string = '';
@@ -46,31 +43,24 @@ export class AreasComponent implements OnInit {
 
   constructor(
     private areasService: AreasService,
-    private router: Router // Inyecta Router
+    private router: Router
   ) { }
 
   ngOnInit(): void {
-    // Verificar si hay token
     const token = localStorage.getItem('token');
     if (!token) {
-      console.log('No hay token, redirigiendo a login...');
       this.router.navigate(['/login']);
       return;
     }
-    
     this.cargarAreas();
   }
 
-  /**
-   * Cargar todas las áreas
-   */
   cargarAreas(): void {
     this.loading = true;
     this.error = '';
     
     this.areasService.getAreas().subscribe({
       next: (areas) => {
-        console.log('✅ Áreas cargadas:', areas);
         this.areas = areas;
         this.totalItems = areas.length;
         this.loading = false;
@@ -85,7 +75,7 @@ export class AreasComponent implements OnInit {
             this.router.navigate(['/login']);
           }, 2000);
         } else {
-          this.error = err.message || 'No se pudieron cargar las áreas. Intente nuevamente.';
+          this.error = err.message || 'No se pudieron cargar las áreas';
         }
         
         this.loading = false;
@@ -93,9 +83,6 @@ export class AreasComponent implements OnInit {
     });
   }
 
-  /**
-   * Abrir modal para crear nueva área
-   */
   abrirModalNueva(): void {
     this.isEditing = false;
     this.modalTitle = 'Nueva Área';
@@ -106,30 +93,20 @@ export class AreasComponent implements OnInit {
     this.showModal = true;
   }
 
-  /**
-   * Abrir modal para editar área existente
-   */
   abrirModalEditar(area: Area): void {
     this.isEditing = true;
     this.modalTitle = 'Editar Área';
-    this.areaForm = { ...area }; // Copiar para no modificar el original
+    this.areaForm = { ...area };
     this.showModal = true;
   }
 
-  /**
-   * Cerrar modal
-   */
   cerrarModal(): void {
     this.showModal = false;
     this.areaForm = { nombre_area: '', descripcion: '' };
     this.error = '';
   }
 
-  /**
-   * Guardar área (crear o actualizar)
-   */
   guardarArea(): void {
-    // Validar formulario
     if (!this.areaForm.nombre_area || this.areaForm.nombre_area.trim() === '') {
       this.error = 'El nombre del área es obligatorio';
       return;
@@ -139,70 +116,57 @@ export class AreasComponent implements OnInit {
     this.error = '';
 
     if (this.isEditing && this.areaForm.id_area) {
-      // Actualizar área existente
       this.areasService.actualizarArea(this.areaForm.id_area, this.areaForm).subscribe({
         next: (areaActualizada) => {
-          // Actualizar en la lista
           const index = this.areas.findIndex(a => a.id_area === areaActualizada.id_area);
           if (index !== -1) {
             this.areas[index] = areaActualizada;
           }
-          
           this.mostrarMensajeExito('Área actualizada exitosamente');
           this.cerrarModal();
           this.loading = false;
         },
         error: (err) => {
-          console.error('Error al actualizar área:', err);
-          this.error = err.error?.message || 'Error al actualizar el área';
+          this.error = err.message || 'Error al actualizar el área';
           this.loading = false;
         }
       });
     } else {
-      // Crear nueva área
       this.areasService.crearArea(this.areaForm).subscribe({
         next: (nuevaArea) => {
-          this.areas.unshift(nuevaArea); // Agregar al inicio
+          this.areas.unshift(nuevaArea);
           this.totalItems = this.areas.length;
-          
           this.mostrarMensajeExito('Área creada exitosamente');
           this.cerrarModal();
           this.loading = false;
         },
         error: (err) => {
-          console.error('Error al crear área:', err);
-          this.error = err.error?.message || 'Error al crear el área';
+          this.error = err.message || 'Error al crear el área';
           this.loading = false;
         }
       });
     }
   }
 
-  /**
-   * Abrir modal de confirmación para eliminar
-   */
   confirmarEliminar(area: Area): void {
     this.areaToDelete = area;
     this.dependencias = null;
     this.deleteLoading = true;
     this.showDeleteModal = true;
+    this.error = '';
     
-    // Verificar dependencias
     this.areasService.verificarDependencias(area.id_area).subscribe({
       next: (deps) => {
         this.dependencias = deps;
         this.deleteLoading = false;
       },
       error: (err) => {
-        console.error('Error al verificar dependencias:', err);
+        this.error = err.message || 'Error al verificar dependencias';
         this.deleteLoading = false;
       }
     });
   }
 
-  /**
-   * Eliminar área
-   */
   eliminarArea(): void {
     if (!this.areaToDelete) return;
     
@@ -211,35 +175,27 @@ export class AreasComponent implements OnInit {
     this.areasService.eliminarArea(this.areaToDelete.id_area).subscribe({
       next: (exito) => {
         if (exito) {
-          // Eliminar de la lista
           this.areas = this.areas.filter(a => a.id_area !== this.areaToDelete!.id_area);
           this.totalItems = this.areas.length;
-          
           this.mostrarMensajeExito('Área eliminada exitosamente');
           this.cerrarModalEliminar();
         }
         this.deleteLoading = false;
       },
       error: (err) => {
-        console.error('Error al eliminar área:', err);
-        this.error = err.error?.message || 'Error al eliminar el área';
+        this.error = err.message || 'Error al eliminar el área';
         this.deleteLoading = false;
       }
     });
   }
 
-  /**
-   * Cerrar modal de eliminar
-   */
   cerrarModalEliminar(): void {
     this.showDeleteModal = false;
     this.areaToDelete = null;
     this.dependencias = null;
+    this.error = '';
   }
 
-  /**
-   * Mostrar mensaje de éxito temporal
-   */
   mostrarMensajeExito(mensaje: string): void {
     this.successMessage = mensaje;
     setTimeout(() => {
@@ -247,9 +203,6 @@ export class AreasComponent implements OnInit {
     }, 3000);
   }
 
-  /**
-   * Filtrar áreas por término de búsqueda
-   */
   get areasFiltradas(): Area[] {
     if (!this.searchTerm) return this.areas;
     
@@ -260,33 +213,21 @@ export class AreasComponent implements OnInit {
     );
   }
 
-  /**
-   * Obtener áreas paginadas
-   */
   get areasPaginadas(): Area[] {
     const start = (this.currentPage - 1) * this.itemsPerPage;
     const end = start + this.itemsPerPage;
     return this.areasFiltradas.slice(start, end);
   }
 
-  /**
-   * Cambiar página
-   */
   cambiarPagina(page: number): void {
     this.currentPage = page;
   }
 
-  /**
-   * Obtener array de páginas para la paginación
-   */
   get paginas(): number[] {
     const totalPaginas = Math.ceil(this.areasFiltradas.length / this.itemsPerPage);
     return Array.from({ length: totalPaginas }, (_, i) => i + 1);
   }
 
-  /**
-   * Refrescar lista de áreas
-   */
   refrescar(): void {
     this.cargarAreas();
   }

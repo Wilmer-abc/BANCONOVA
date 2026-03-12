@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../config/db'); // Asegúrate de que esta ruta sea correcta
-const { verificarToken } = require('../middlewares/auth'); // O '../middlewares/auth' según cómo renombres
+const db = require('../config/db');
+const { verificarToken } = require('../middlewares/auth');
 
 // ============ CRUD DE ÁREAS ============
 
@@ -20,7 +20,6 @@ router.get('/', verificarToken, async (req, res) => {
             ORDER BY id_area DESC
         `);
 
-        
         res.json({
             success: true,
             data: areas
@@ -45,8 +44,8 @@ router.get('/:id', verificarToken, async (req, res) => {
         
         const [areas] = await db.query(`
             SELECT 
-                id_area AS id,
-                nombre_area AS nombre,
+                id_area,
+                nombre_area,
                 descripcion
             FROM areas 
             WHERE id_area = ?
@@ -81,7 +80,6 @@ router.post('/', verificarToken, async (req, res) => {
     try {
         const { nombre_area, descripcion } = req.body;
         
-        // Validaciones
         if (!nombre_area || nombre_area.trim() === '') {
             return res.status(400).json({
                 success: false,
@@ -89,13 +87,12 @@ router.post('/', verificarToken, async (req, res) => {
             });
         }
         
-        // Verificar si ya existe un área con ese nombre
+        // Verificar si ya existe
         const [existente] = await db.query(
             'SELECT id_area FROM areas WHERE nombre_area = ?',
             [nombre_area.trim()]
         );
 
-        
         if (existente.length > 0) {
             return res.status(400).json({
                 success: false,
@@ -112,11 +109,10 @@ router.post('/', verificarToken, async (req, res) => {
         // Obtener el área recién creada
         const [nuevaArea] = await db.query(`
             SELECT 
-            id_area,
-            nombre_area,
-            descripcion
+                id_area,
+                nombre_area,
+                descripcion
             FROM areas
-
             WHERE id_area = ?
         `, [result.insertId]);
         
@@ -136,12 +132,11 @@ router.post('/', verificarToken, async (req, res) => {
 });
 
 /**
- * DELETE /api/areas/:id
- * Eliminar un área
+ * PUT /api/areas/:id
+ * Actualizar un área existente
  */
 router.put('/:id', verificarToken, async (req, res) => {
     try {
-
         const { id } = req.params;
         const { nombre_area, descripcion } = req.body;
 
@@ -152,47 +147,139 @@ router.put('/:id', verificarToken, async (req, res) => {
             });
         }
 
+        // Verificar si existe
+        const [existe] = await db.query(
+            'SELECT id_area FROM areas WHERE id_area = ?',
+            [id]
+        );
+
+        if (existe.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Área no encontrada'
+            });
+        }
+
+        // Actualizar
         await db.query(
             'UPDATE areas SET nombre_area = ?, descripcion = ? WHERE id_area = ?',
             [nombre_area.trim(), descripcion?.trim() || null, id]
         );
 
-        const [areaActualizada] = await db.query(
-            'SELECT id_area, nombre_area, descripcion FROM areas WHERE id_area = ?',
-            [id]
-        );
+        // Obtener área actualizada
+        const [areaActualizada] = await db.query(`
+            SELECT 
+                id_area,
+                nombre_area,
+                descripcion
+            FROM areas 
+            WHERE id_area = ?
+        `, [id]);
 
         res.json({
             success: true,
+            message: 'Área actualizada exitosamente',
             data: areaActualizada[0]
         });
 
     } catch (error) {
         console.error('Error al actualizar área:', error);
-
         res.status(500).json({
             success: false,
-            message: 'Error al actualizar el área'
+            message: 'Error al actualizar el área',
+            error: error.message
         });
     }
 });
 
+/**
+ * DELETE /api/areas/:id
+ * Eliminar un área (CORREGIDO - antes estaba como PUT)
+ */
+router.delete('/:id', verificarToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Verificar si existe
+        const [existe] = await db.query(
+            'SELECT id_area FROM areas WHERE id_area = ?',
+            [id]
+        );
+
+        if (existe.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Área no encontrada'
+            });
+        }
+
+        // Verificar dependencias
+        const [dependencias] = await db.query(`
+            SELECT 
+                (SELECT COUNT(*) FROM checklist WHERE id_area = ?) as total_checklists
+        `, [id, id]);
+
+        if (dependencias[0].total_checklists > 0 || dependencias[0].total_usuarios > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'No se puede eliminar el área porque tiene dependencias'
+            });
+        }
+
+        // Eliminar área
+        await db.query('DELETE FROM areas WHERE id_area = ?', [id]);
+
+        res.json({
+            success: true,
+            message: 'Área eliminada exitosamente'
+        });
+
+    } catch (error) {
+        console.error('Error al eliminar área:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al eliminar el área',
+            error: error.message
+        });
+    }
+});
 
 /**
  * GET /api/areas/check-dependencias/:id
- * Verificar si un área tiene dependencias
+ * Verificar si un área tiene dependencias (CORREGIDO)
  */
 router.get('/check-dependencias/:id', verificarToken, async (req, res) => {
     try {
         const { id } = req.params;
         
-        const [dependencias] = await db.query(`
-            SELECT 
-                (SELECT COUNT(*) FROM checklist WHERE id_area = ?) as total_checklists,
-                (SELECT COUNT(*) FROM usuarios WHERE id_area = ?) as total_usuarios,
-                (SELECT COUNT(*) FROM ejecuciones WHERE id_area = ?) as total_ejecuciones
-        `, [id, id, id]);
-        
+        // Verificar que el área existe
+        const [area] = await db.query(
+            'SELECT id_area FROM areas WHERE id_area = ?',
+            [id]
+        );
+
+        if (area.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Área no encontrada'
+            });
+        }
+
+        // Consulta corregida - usando placeholders correctamente
+        // Verificar dependencias
+            const [dependencias] = await db.query(`
+                SELECT 
+                    (SELECT COUNT(*) FROM checklist WHERE id_area = ?) as total_checklists
+            `, [id]);
+
+            if (dependencias[0].total_checklists > 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'No se puede eliminar el área porque tiene checklists asociados'
+                });
+            }
+
+
         res.json({
             success: true,
             data: dependencias[0]
