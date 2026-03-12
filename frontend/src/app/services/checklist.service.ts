@@ -8,13 +8,9 @@ import { Checklist } from '../components/models/checklist.model';
   providedIn: 'root'
 })
 export class ChecklistService {
-  // URL base de la API - ajusta según tu configuración
   private apiUrl = 'http://localhost:3000/api/checklist';
-  
-  // Timeout para las peticiones (10 segundos)
   private readonly TIMEOUT = 10000;
   
-  // Headers por defecto
   private httpOptions = {
     headers: new HttpHeaders({
       'Content-Type': 'application/json',
@@ -28,13 +24,12 @@ export class ChecklistService {
 
   /**
    * Obtener todos los checklists
-   * @returns Observable con array de checklists
    */
   getChecklists(): Observable<Checklist[]> {
     return this.http.get<Checklist[]>(this.apiUrl, this.httpOptions)
       .pipe(
         timeout(this.TIMEOUT),
-        retry(2), // Reintentar 2 veces si falla
+        retry(2),
         map(response => this.sortChecklistsByDate(response)),
         catchError(this.handleError)
       );
@@ -42,8 +37,6 @@ export class ChecklistService {
 
   /**
    * Obtener un checklist por su ID
-   * @param id ID del checklist
-   * @returns Observable con el checklist encontrado
    */
   getChecklistById(id: number): Observable<Checklist> {
     return this.http.get<Checklist>(`${this.apiUrl}/${id}`, this.httpOptions)
@@ -56,48 +49,53 @@ export class ChecklistService {
 
   /**
    * Crear un nuevo checklist
-   * @param checklist Datos del checklist a crear
-   * @returns Observable con el checklist creado
    */
-createChecklist(checklist: Checklist): Observable<Checklist> {
-  // Asegurar que los valores numéricos sean realmente números
-  const checklistToSend = {
-    nombre: checklist.nombre,
-    descripcion: checklist.descripcion || '',
-    id_area: Number(checklist.id_area),
-    creado_por: Number(checklist.creado_por) || 1
-  };
+  createChecklist(checklist: any): Observable<Checklist> {
+    // Para creación, necesitamos validar TODOS los campos
+    if (!this.validateCreateData(checklist)) {
+      return throwError(() => new Error('Datos del checklist inválidos'));
+    }
 
-  console.log('Validando checklist:', checklistToSend); // Para depuración
+    const checklistToSend = {
+      nombre: checklist.nombre,
+      descripcion: checklist.descripcion || '',
+      id_area: Number(checklist.id_area),
+      creado_por: Number(localStorage.getItem('userId')) || 1, // Obtener del token/localStorage
+      preguntas: checklist.preguntas || []
+    };
 
-  // Validar datos antes de enviar
-  if (!this.validateChecklistData(checklistToSend)) {
-    return throwError(() => new Error('Datos del checklist inválidos'));
+    console.log('Enviando checklist (creación):', checklistToSend);
+
+    return this.http.post<Checklist>(this.apiUrl, checklistToSend, this.httpOptions)
+      .pipe(
+        timeout(this.TIMEOUT),
+        catchError(this.handleError)
+      );
   }
-
-  return this.http.post<Checklist>(this.apiUrl, checklistToSend, this.httpOptions)
-    .pipe(
-      timeout(this.TIMEOUT),
-      catchError(this.handleError)
-    );
-}
 
   /**
    * Actualizar un checklist existente
-   * @param id ID del checklist a actualizar
-   * @param checklist Datos actualizados
-   * @returns Observable con el checklist actualizado
    */
-  updateChecklist(id: number, checklist: Checklist): Observable<Checklist> {
+  updateChecklist(id: number, checklist: any): Observable<Checklist> {
     if (!id) {
       return throwError(() => new Error('ID de checklist no proporcionado'));
     }
 
-    if (!this.validateChecklistData(checklist)) {
+    // Para actualización, NO necesitamos validar creado_por
+    if (!this.validateUpdateData(checklist)) {
       return throwError(() => new Error('Datos del checklist inválidos'));
     }
 
-    return this.http.put<Checklist>(`${this.apiUrl}/${id}`, checklist, this.httpOptions)
+    const checklistToSend = {
+      nombre: checklist.nombre,
+      descripcion: checklist.descripcion || '',
+      id_area: Number(checklist.id_area),
+      preguntas: checklist.preguntas || []
+    };
+
+    console.log('Enviando checklist (actualización):', checklistToSend);
+
+    return this.http.put<Checklist>(`${this.apiUrl}/${id}`, checklistToSend, this.httpOptions)
       .pipe(
         timeout(this.TIMEOUT),
         catchError(this.handleError)
@@ -106,8 +104,6 @@ createChecklist(checklist: Checklist): Observable<Checklist> {
 
   /**
    * Eliminar un checklist
-   * @param id ID del checklist a eliminar
-   * @returns Observable con la respuesta
    */
   deleteChecklist(id: number): Observable<any> {
     if (!id) {
@@ -123,8 +119,6 @@ createChecklist(checklist: Checklist): Observable<Checklist> {
 
   /**
    * Obtener checklists por área
-   * @param idArea ID del área
-   * @returns Observable con array de checklists del área
    */
   getChecklistsByArea(idArea: number): Observable<Checklist[]> {
     if (!idArea) {
@@ -140,9 +134,126 @@ createChecklist(checklist: Checklist): Observable<Checklist> {
   }
 
   /**
+   * Validar datos para CREACIÓN
+   */
+  private validateCreateData(checklist: any): boolean {
+    if (!checklist) return false;
+    
+    // Validar nombre
+    if (!checklist.nombre || checklist.nombre.trim() === '') {
+      console.error('Error: El nombre del checklist es requerido');
+      return false;
+    }
+
+    if (checklist.nombre.length > 150) {
+      console.error('Error: El nombre no puede exceder los 150 caracteres');
+      return false;
+    }
+
+    // Validar área
+    if (checklist.id_area === undefined || 
+        checklist.id_area === null || 
+        isNaN(Number(checklist.id_area)) || 
+        Number(checklist.id_area) <= 0) {
+      console.error('Error: El área es requerida', checklist.id_area);
+      return false;
+    }
+
+    // Validar preguntas (si vienen)
+    if (checklist.preguntas !== undefined && checklist.preguntas !== null) {
+      if (!Array.isArray(checklist.preguntas)) {
+        console.error('Error: Las preguntas deben ser un array');
+        return false;
+      }
+
+      for (let i = 0; i < checklist.preguntas.length; i++) {
+        const p = checklist.preguntas[i];
+        if (!p.pregunta || p.pregunta.trim() === '') {
+          console.error(`Error: La pregunta #${i + 1} no puede estar vacía`);
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Validar datos para ACTUALIZACIÓN (sin requerir creado_por)
+   */
+  private validateUpdateData(checklist: any): boolean {
+    if (!checklist) return false;
+    
+    // Validar nombre
+    if (!checklist.nombre || checklist.nombre.trim() === '') {
+      console.error('Error: El nombre del checklist es requerido');
+      return false;
+    }
+
+    if (checklist.nombre.length > 150) {
+      console.error('Error: El nombre no puede exceder los 150 caracteres');
+      return false;
+    }
+
+    // Validar área
+    if (checklist.id_area === undefined || 
+        checklist.id_area === null || 
+        isNaN(Number(checklist.id_area)) || 
+        Number(checklist.id_area) <= 0) {
+      console.error('Error: El área es requerida', checklist.id_area);
+      return false;
+    }
+
+    // Validar preguntas (si vienen)
+    if (checklist.preguntas !== undefined && checklist.preguntas !== null) {
+      if (!Array.isArray(checklist.preguntas)) {
+        console.error('Error: Las preguntas deben ser un array');
+        return false;
+      }
+
+      for (let i = 0; i < checklist.preguntas.length; i++) {
+        const p = checklist.preguntas[i];
+        if (!p.pregunta || p.pregunta.trim() === '') {
+          console.error(`Error: La pregunta #${i + 1} no puede estar vacía`);
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Ordenar checklists por fecha
+   */
+  private sortChecklistsByDate(checklists: Checklist[]): Checklist[] {
+    return checklists.sort((a, b) => {
+      const dateA = a.fecha_creacion ? new Date(a.fecha_creacion).getTime() : 0;
+      const dateB = b.fecha_creacion ? new Date(b.fecha_creacion).getTime() : 0;
+      return dateB - dateA;
+    });
+  }
+
+  /**
+   * Manejo centralizado de errores
+   */
+  private handleError(error: any): Observable<never> {
+    let errorMessage = 'Error desconocido';
+
+    if (error.error instanceof ErrorEvent) {
+      errorMessage = `Error: ${error.error.message}`;
+      console.error('Error del cliente:', error.error.message);
+    } else {
+      errorMessage = error.error?.message || `Código: ${error.status}`;
+      console.error('Error del servidor:', error);
+    }
+
+    console.error('Error completo:', error);
+    return throwError(() => new Error(errorMessage));
+  }
+
+  /**
    * Buscar checklists por nombre
-   * @param termino Término de búsqueda
-   * @returns Observable con array de checklists que coinciden
    */
   searchChecklists(termino: string): Observable<Checklist[]> {
     const params = new HttpParams().set('search', termino);
@@ -158,8 +269,6 @@ createChecklist(checklist: Checklist): Observable<Checklist> {
 
   /**
    * Obtener checklists recientes
-   * @param limite Número máximo de checklists a obtener
-   * @returns Observable con array de checklists recientes
    */
   getRecentChecklists(limite: number = 5): Observable<Checklist[]> {
     return this.getChecklists().pipe(
@@ -169,9 +278,6 @@ createChecklist(checklist: Checklist): Observable<Checklist> {
 
   /**
    * Verificar si existe un checklist con el mismo nombre en un área
-   * @param nombre Nombre del checklist
-   * @param idArea ID del área
-   * @returns Observable con boolean indicando si existe
    */
   checkDuplicateName(nombre: string, idArea: number): Observable<boolean> {
     return this.getChecklistsByArea(idArea).pipe(
@@ -184,7 +290,6 @@ createChecklist(checklist: Checklist): Observable<Checklist> {
 
   /**
    * Obtener estadísticas de checklists
-   * @returns Observable con objeto de estadísticas
    */
   getChecklistStats(): Observable<any> {
     return this.getChecklists().pipe(
@@ -197,11 +302,9 @@ createChecklist(checklist: Checklist): Observable<Checklist> {
         };
 
         checklists.forEach(checklist => {
-          // Contar por área
           const areaId = checklist.id_area;
           stats.porArea.set(areaId, (stats.porArea.get(areaId) || 0) + 1);
 
-          // Contar con/sin descripción
           if (checklist.descripcion && checklist.descripcion.trim() !== '') {
             stats.conDescripcion++;
           } else {
@@ -217,7 +320,6 @@ createChecklist(checklist: Checklist): Observable<Checklist> {
 
   /**
    * Exportar checklists a JSON
-   * @returns Observable con string JSON
    */
   exportToJSON(): Observable<string> {
     return this.getChecklists().pipe(
@@ -228,145 +330,25 @@ createChecklist(checklist: Checklist): Observable<Checklist> {
 
   /**
    * Clonar un checklist existente
-   * @param id ID del checklist a clonar
-   * @param nuevoNombre Nuevo nombre para el checklist clonado
-   * @returns Observable con el nuevo checklist creado
    */
   cloneChecklist(id: number, nuevoNombre: string): Observable<Checklist> {
     return this.getChecklistById(id).pipe(
       map(checklist => {
-        const clonedChecklist: Checklist = {
-          ...checklist,
+        const clonedChecklist: any = {
           nombre: nuevoNombre,
-          id_checklist: undefined,
-          fecha_creacion: undefined
+          descripcion: checklist.descripcion,
+          id_area: checklist.id_area,
+          preguntas: checklist.preguntas?.map(p => ({
+            pregunta: p.pregunta,
+            tipo_respuesta: p.tipo_respuesta,
+            opciones: p.opciones,
+            requiere_observacion: p.requiere_observacion
+          })) || []
         };
         return clonedChecklist;
       }),
       switchMap(cloned => this.createChecklist(cloned)),
       catchError(this.handleError)
     );
-  }
-
-  /**
-   * Ordenar checklists por fecha (más reciente primero)
-   * @param checklists Array de checklists
-   * @returns Array ordenado
-   */
-  private sortChecklistsByDate(checklists: Checklist[]): Checklist[] {
-    return checklists.sort((a, b) => {
-      const dateA = a.fecha_creacion ? new Date(a.fecha_creacion).getTime() : 0;
-      const dateB = b.fecha_creacion ? new Date(b.fecha_creacion).getTime() : 0;
-      return dateB - dateA;
-    });
-  }
-
-  /**
-   * Validar datos del checklist antes de enviar
-   * @param checklist Datos a validar
-   * @returns true si es válido, false si no
-   */
-// checklist.service.ts - Actualizar el método validateChecklistData
-
-private validateChecklistData(checklist: Checklist): boolean {
-  if (!checklist) return false;
-  
-  // Validar nombre
-  if (!checklist.nombre || checklist.nombre.trim() === '') {
-    console.error('Error: El nombre del checklist es requerido');
-    return false;
-  }
-
-  if (checklist.nombre.length > 150) {
-    console.error('Error: El nombre no puede exceder los 150 caracteres');
-    return false;
-  }
-
-  // Validar área - MEJORADA
-  if (checklist.id_area === undefined || 
-      checklist.id_area === null || 
-      isNaN(Number(checklist.id_area)) || 
-      Number(checklist.id_area) <= 0) {
-    console.error('Error: El área es requerida y debe ser un número válido', checklist.id_area);
-    return false;
-  }
-
-  // Validar creador - MEJORADA
-  if (checklist.creado_por === undefined || 
-      checklist.creado_por === null || 
-      isNaN(Number(checklist.creado_por)) || 
-      Number(checklist.creado_por) <= 0) {
-    console.error('Error: El usuario creador es requerido', checklist.creado_por);
-    return false;
-  }
-
-  return true;
-}
-
-  /**
-   * Manejo centralizado de errores
-   * @param error Error ocurrido
-   * @returns Observable con error
-   */
-  private handleError(error: any): Observable<never> {
-    let errorMessage = 'Error desconocido';
-
-    if (error.error instanceof ErrorEvent) {
-      // Error del lado del cliente
-      errorMessage = `Error: ${error.error.message}`;
-      console.error('Error del cliente:', error.error.message);
-    } else {
-      // Error del servidor
-      errorMessage = `Código: ${error.status}\nMensaje: ${error.message}`;
-      console.error(
-        `Error del servidor: ${error.status}`,
-        error.error
-      );
-    }
-
-    // Registrar error en consola
-    console.error('Error completo:', error);
-
-    // Retornar observable con error
-    return throwError(() => new Error(errorMessage));
-  }
-
-  /**
-   * Configurar headers personalizados
-   * @param customHeaders Headers adicionales
-   */
-  setCustomHeaders(customHeaders: HttpHeaders): void {
-    this.httpOptions = {
-      ...this.httpOptions,
-      headers: this.httpOptions.headers.keys().reduce((headers, key) => {
-        return headers.set(key, this.httpOptions.headers.get(key) || '');
-      }, customHeaders)
-    };
-  }
-
-  /**
-   * Cambiar la URL base de la API
-   * @param newUrl Nueva URL base
-   */
-  setApiUrl(newUrl: string): void {
-    if (newUrl && newUrl.trim() !== '') {
-      this.apiUrl = newUrl;
-      console.log('API URL actualizada a:', this.apiUrl);
-    }
-  }
-
-  /**
-   * Obtener la URL base actual
-   */
-  getApiUrl(): string {
-    return this.apiUrl;
-  }
-
-  /**
-   * Limpiar cache de checklists (si usaras cache)
-   */
-  clearCache(): void {
-    // Implementar si usas alguna estrategia de cache
-    console.log('Cache limpiado');
   }
 }
