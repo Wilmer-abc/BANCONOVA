@@ -77,8 +77,8 @@ export class SidebarComponent implements OnInit {
       badgeType: 'warning',
       children: [
         { label: 'Ver checklists', route: '/dashboard/checklist', icon: 'list' }, // Cambiado de 'crear' a la vista principal
-        { label: 'Ejecutar checklist', route: '/dashboard/checklist/ejecutar', icon: 'play_arrow' },
-        { label: 'Historial checklist', route: '/dashboard/checklist/historial', icon: 'history' }
+        { label: 'Ejecutar checklist', route: '/dashboard/checklist/ejecutar', icon: 'play_arrow' }
+        // { label: 'Historial checklist', route: '/dashboard/checklist/historial', icon: 'history' }
       ]
     },
     {
