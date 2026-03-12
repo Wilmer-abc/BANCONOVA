@@ -4,6 +4,7 @@ import { LoginComponent } from './components/login/login.component';
 import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { AreasComponent } from './components/areas/areas.component';
 import { ChecklistComponent } from './components/checklist/checklist.component';
+import { EjecutarChecklistComponent } from './components/ejecutarchecklist/ejecutar-checklist.component';
 import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -17,9 +18,9 @@ export const routes: Routes = [
       { path: '', redirectTo: 'inicio', pathMatch: 'full' },
       { path: 'inicio', component: DashboardComponent }, 
       { path: 'areas/administrar', component: AreasComponent },
-      { path: 'checklist', component: ChecklistComponent }
-
-
+      { path: 'checklist', component: ChecklistComponent },
+      { path: 'checklist/ejecutar', component: EjecutarChecklistComponent },
+      { path: 'checklist/ejecutar/:id', component: EjecutarChecklistComponent }
     ]
   },
   { path: '', redirectTo: '/login', pathMatch: 'full' },
