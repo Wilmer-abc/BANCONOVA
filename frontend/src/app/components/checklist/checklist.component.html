@@ -23,8 +23,14 @@
       
       <div class="card-body">
         <p class="description">{{ checklist.descripcion || 'Sin descripción' }}</p>
+        <div class="preguntas-info">
+          <span class="badge-preguntas">
+            <i class="fas fa-question-circle"></i> 
+            {{ checklist.preguntas?.length || 0 }} preguntas
+          </span>
+        </div>
         <p class="meta">
-          <small>Creado por: {{ checklist.creador_nombre || 'Usuario' }}</small><br>
+          <small>Creado por: {{ checklist.creado_por || 'Usuario' }}</small><br>
           <small>Fecha: {{ checklist.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</small>
         </p>
       </div>
@@ -50,66 +56,147 @@
     </div>
   </div>
 
-  <!-- Modal for Create/Edit -->
+  <!-- Modal para Create/Edit CON PREGUNTAS -->
   <div class="modal" [class.show]="showModal" (click)="closeModal()">
-    <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-content modal-lg" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h2>{{ isEditing ? 'Editar' : 'Nuevo' }} Checklist</h2>
         <button class="close-btn" (click)="closeModal()">&times;</button>
       </div>
 
       <form [formGroup]="checklistForm" (ngSubmit)="saveChecklist()">
-        <div class="form-group">
-          <label for="nombre">Nombre *</label>
-          <input 
-            type="text" 
-            id="nombre" 
-            formControlName="nombre" 
-            placeholder="Ingrese el nombre del checklist"
-            [class.invalid]="nombre?.invalid && nombre?.touched"
-          >
-          <div class="error-message" *ngIf="nombre?.invalid && nombre?.touched">
-            <span *ngIf="nombre?.errors?.['required']">El nombre es requerido</span>
-            <span *ngIf="nombre?.errors?.['maxlength']">Máximo 150 caracteres</span>
+        <!-- DATOS BÁSICOS -->
+        <div class="form-section">
+          <h3>Información General</h3>
+          
+          <div class="form-group">
+            <label for="nombre">Nombre *</label>
+            <input 
+              type="text" 
+              id="nombre" 
+              formControlName="nombre" 
+              placeholder="Ingrese el nombre del checklist"
+              [class.invalid]="nombre?.invalid && nombre?.touched"
+            >
+            <div class="error-message" *ngIf="nombre?.invalid && nombre?.touched">
+              <span *ngIf="nombre?.errors?.['required']">El nombre es requerido</span>
+              <span *ngIf="nombre?.errors?.['maxlength']">Máximo 150 caracteres</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="descripcion">Descripción</label>
+            <textarea 
+              id="descripcion" 
+              formControlName="descripcion" 
+              rows="3"
+              placeholder="Ingrese una descripción (opcional)"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="id_area">Área *</label>
+            <select 
+              id="id_area" 
+              formControlName="id_area"
+              [class.invalid]="id_area?.invalid && id_area?.touched"
+            >
+              <option [ngValue]="null">Seleccione un área</option>
+              <option *ngFor="let area of areas" [ngValue]="area.id_area">
+                {{ area.nombre_area }}
+              </option>
+            </select>
+            <div class="error-message" *ngIf="id_area?.invalid && id_area?.touched">
+              El área es requerida
+            </div>
           </div>
         </div>
 
-        <div class="form-group">
-          <label for="descripcion">Descripción</label>
-          <textarea 
-            id="descripcion" 
-            formControlName="descripcion" 
-            rows="3"
-            placeholder="Ingrese una descripción (opcional)"
-          ></textarea>
-        </div>
+        <!-- PREGUNTAS DEL CHECKLIST -->
+        <div class="form-section">
+          <div class="section-header">
+            <h3>Preguntas del Checklist</h3>
+            <button type="button" class="btn-add-pregunta" (click)="agregarPregunta()">
+              <i class="fas fa-plus"></i> Agregar Pregunta
+            </button>
+          </div>
 
-        <div class="form-group">
-          <label for="id_area">Área *</label>
-<select 
-  id="id_area" 
-  formControlName="id_area"
->
+          <div formArrayName="preguntas" class="preguntas-container">
+            <div *ngFor="let pregunta of preguntasArray.controls; let i = index" 
+                 [formGroupName]="i" 
+                 class="pregunta-item">
+              
+              <div class="pregunta-header">
+                <h4>Pregunta #{{ i + 1 }}</h4>
+                <button type="button" class="btn-remove-pregunta" (click)="eliminarPregunta(i)">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
 
-  <option [ngValue]="null">Seleccione un área</option>
+              <div class="pregunta-body">
+                <!-- Texto de la pregunta -->
+                <div class="form-group">
+                  <label>Pregunta *</label>
+                  <input 
+                    type="text" 
+                    formControlName="pregunta"
+                    placeholder="Ej: ¿Se cumple con la normativa de seguridad?"
+                    [class.invalid]="pregunta.get('pregunta')?.invalid && pregunta.get('pregunta')?.touched"
+                  >
+                </div>
 
-  <option *ngFor="let area of areas" [ngValue]="area.id_area">
-    {{ area.nombre_area }}
-  </option>
+                <!-- Tipo de respuesta -->
+                <div class="form-row">
+                  <div class="form-group col">
+                    <label>Tipo de Respuesta</label>
+                    <select formControlName="tipo_respuesta">
+                      <option value="si_no">Sí / No / N/A</option>
+                      <option value="texto">Texto</option>
+                      <option value="numerico">Valor numérico</option>
+                      <option value="opcion_multiple">Opción múltiple</option>
+                      <option value="fecha">Fecha</option>
+                    </select>
+                  </div>
 
-</select>
+                  <div class="form-group col">
+                    <label>&nbsp;</label>
+                    <div class="checkbox-group">
+                      <label>
+                        <input type="checkbox" formControlName="requiere_observacion">
+                        Requiere observaciones
+                      </label>
+                    </div>
+                  </div>
+                </div>
 
-          <div class="error-message" *ngIf="id_area?.invalid && id_area?.touched">
-            El área es requerida
+                <!-- Opciones para respuesta múltiple -->
+                <div class="form-group" *ngIf="pregunta.get('tipo_respuesta')?.value === 'opcion_multiple'">
+                  <label>Opciones (separadas por comas)</label>
+                  <input 
+                    type="text" 
+                    formControlName="opciones"
+                    placeholder="Ej: Sí, No, N/A, Parcialmente"
+                  >
+                  <small class="form-text">Ingrese las opciones separadas por comas</small>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mensaje cuando no hay preguntas -->
+            <div class="no-preguntas" *ngIf="preguntasArray.length === 0">
+              <p>No hay preguntas agregadas. Haga clic en "Agregar Pregunta" para comenzar.</p>
+            </div>
           </div>
         </div>
 
+        <!-- BOTONES DE ACCIÓN -->
         <div class="modal-actions">
           <button type="button" class="btn-secondary" (click)="closeModal()">
             Cancelar
           </button>
-          <button type="submit" class="btn-primary" [disabled]="checklistForm.invalid">
-            {{ isEditing ? 'Actualizar' : 'Guardar' }}
+          <button type="submit" class="btn-primary" [disabled]="checklistForm.invalid || loading">
+            <i class="fas" [ngClass]="loading ? 'fa-spinner fa-spin' : (isEditing ? 'fa-save' : 'fa-plus')"></i>
+            {{ loading ? 'Guardando...' : (isEditing ? 'Actualizar' : 'Guardar') }}
           </button>
         </div>
       </form>
