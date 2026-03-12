@@ -1,0 +1,356 @@
+<div class="ejecutar-checklist-container">
+  
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <button class="btn-back" (click)="volverALista()" *ngIf="modoVista !== 'lista'">
+        <i class="material-icons">arrow_back</i>
+        Volver
+      </button>
+      <h1>
+        <i class="material-icons header-icon">checklist</i>
+        <span *ngIf="modoVista === 'lista'">Checklists Pendientes</span>
+        <span *ngIf="modoVista === 'ejecucion'">Ejecutando: {{ checklistActivo?.info?.nombre }}</span>
+        <span *ngIf="modoVista === 'historial'">Historial de Ejecuciones</span>
+        <span *ngIf="modoVista === 'detalle'">Detalle de Ejecución</span>
+      </h1>
+    </div>
+    <div class="header-right">
+      <button class="btn-historial" (click)="cargarHistorial(); modoVista='historial'" *ngIf="modoVista === 'lista'">
+        <i class="material-icons">history</i>
+        Ver Historial
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-container" *ngIf="loading">
+    <div class="spinner"></div>
+    <p>Cargando...</p>
+  </div>
+
+  <!-- Error -->
+  <div class="alert alert-error" *ngIf="error">
+    <i class="material-icons">error</i>
+    {{ error }}
+  </div>
+
+  <!-- =========================================== -->
+  <!-- VISTA: LISTA DE CHECKLISTS PENDIENTES -->
+  <!-- =========================================== -->
+  <div class="pendientes-container" *ngIf="modoVista === 'lista' && !loading">
+    
+    <div class="stats-resumen" *ngIf="checklistsPendientes.length > 0">
+      <div class="stat-card">
+        <span class="stat-value">{{ checklistsPendientes.length }}</span>
+        <span class="stat-label">Checklists pendientes</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">{{ checklistsPendientes.filter(c => c.estado === 'en_progreso').length }}</span>
+        <span class="stat-label">En progreso</span>
+      </div>
+    </div>
+
+    <div class="checklist-grid">
+      <div class="empty-state" *ngIf="checklistsPendientes.length === 0">
+        <i class="material-icons empty-icon">check_circle</i>
+        <h3>¡Todo al día!</h3>
+        <p>No tienes checklists pendientes por ejecutar</p>
+        <button class="btn-primary" (click)="cargarHistorial(); modoVista='historial'">
+          Ver historial
+        </button>
+      </div>
+
+      <div class="checklist-card" *ngFor="let checklist of checklistsPendientes">
+        <div class="card-header">
+          <h3>{{ checklist.nombre }}</h3>
+          <span class="badge" [class.badge-warning]="checklist.estado === 'pendiente'"
+                             [class.badge-info]="checklist.estado === 'en_progreso'">
+            {{ checklist.estado === 'pendiente' ? 'Pendiente' : 'En progreso' }}
+          </span>
+        </div>
+        
+        <div class="card-body">
+          <p class="descripcion">{{ checklist.descripcion || 'Sin descripción' }}</p>
+          
+          <div class="checklist-meta">
+            <span class="meta-item">
+              <i class="material-icons">business</i>
+              {{ checklist.area }}
+            </span>
+            <span class="meta-item">
+              <i class="material-icons">help</i>
+              {{ checklist.total_preguntas }} preguntas
+            </span>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <button class="btn-start" (click)="iniciarChecklist(checklist)">
+            <i class="material-icons">play_arrow</i>
+            {{ checklist.estado === 'en_progreso' ? 'Continuar' : 'Iniciar' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================== -->
+  <!-- VISTA: EJECUCIÓN DE CHECKLIST -->
+  <!-- =========================================== -->
+  <div class="ejecucion-container" *ngIf="modoVista === 'ejecucion' && checklistActivo && !loading">
+    
+    <!-- Info del checklist -->
+    <div class="checklist-info-card">
+      <div class="info-row">
+        <div class="info-item">
+          <span class="info-label">Área:</span>
+          <span class="info-value">{{ checklistActivo.info.area }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Creado por:</span>
+          <span class="info-value">{{ checklistActivo.info.creado_por }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Tiempo:</span>
+          <span class="info-value timer">{{ tiempoTranscurrido }}</span>
+        </div>
+      </div>
+      
+      <!-- Barra de progreso -->
+      <div class="progreso-container">
+        <div class="progreso-header">
+          <span>Progreso</span>
+          <span>{{ progreso }}% ({{ preguntaActualIndex + 1 }}/{{ totalPreguntas }})</span>
+        </div>
+        <div class="progreso-bar">
+          <div class="progreso-fill" [style.width.%]="progreso" [style.background]="getColorProgreso()"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pregunta actual -->
+    <div class="pregunta-card">
+      <div class="pregunta-header">
+        <span class="pregunta-numero">Pregunta {{ preguntaActualIndex + 1 }} de {{ totalPreguntas }}</span>
+      </div>
+      
+      <div class="pregunta-contenido">
+        <h2>{{ preguntaActual?.pregunta }}</h2>
+        
+        <div class="respuesta-section" [formGroup]="respuestasArray.at(preguntaActualIndex)">
+          
+          <!-- Respuesta según tipo -->
+          <div [ngSwitch]="preguntaActual?.tipo_respuesta">
+            
+            <!-- Sí/No -->
+            <div class="respuesta-si-no" *ngSwitchCase="'si_no'">
+              <label class="radio-option">
+                <input type="radio" [formControlName]="'respuesta'" value="Sí">
+                <span class="radio-label">Sí</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" [formControlName]="'respuesta'" value="No">
+                <span class="radio-label">No</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" [formControlName]="'respuesta'" value="N/A">
+                <span class="radio-label">N/A</span>
+              </label>
+            </div>
+
+            <!-- Texto -->
+            <div class="respuesta-texto" *ngSwitchCase="'texto'">
+              <textarea 
+                [formControlName]="'respuesta'"
+                rows="4"
+                placeholder="Escribe tu respuesta...">
+              </textarea>
+            </div>
+
+            <!-- Numérico -->
+            <div class="respuesta-numerico" *ngSwitchCase="'numerico'">
+              <input 
+                type="number" 
+                [formControlName]="'respuesta'"
+                placeholder="Ingresa un valor numérico">
+            </div>
+
+            <!-- Opción múltiple -->
+            <div class="respuesta-opciones" *ngSwitchCase="'opcion_multiple'">
+              <label class="radio-option" *ngFor="let opcion of preguntaActual?.opciones">
+                <input type="radio" [formControlName]="'respuesta'" [value]="opcion">
+                <span class="radio-label">{{ opcion }}</span>
+              </label>
+            </div>
+
+            <!-- Fecha -->
+            <div class="respuesta-fecha" *ngSwitchCase="'fecha'">
+              <input type="date" [formControlName]="'respuesta'">
+            </div>
+
+            <!-- Default -->
+            <div *ngSwitchDefault>
+              <input type="text" [formControlName]="'respuesta'" placeholder="Respuesta">
+            </div>
+          </div>
+
+          <!-- Observaciones (si aplica) -->
+          <div class="observaciones-section" *ngIf="preguntaActual?.requiere_observacion">
+            <label>Observaciones:</label>
+            <textarea 
+              [formControlName]="'observaciones'"
+              rows="2"
+              placeholder="Agrega observaciones si es necesario...">
+            </textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Botones de navegación -->
+      <div class="pregunta-footer">
+        <button class="btn-secondary" (click)="anteriorPregunta()" [disabled]="preguntaActualIndex === 0">
+          <i class="material-icons">chevron_left</i>
+          Anterior
+        </button>
+        
+        <div class="footer-actions">
+          <button class="btn-save" (click)="guardarRespuesta(preguntaActualIndex)" [disabled]="guardando">
+            <i class="material-icons">{{ guardando ? 'sync' : 'save' }}</i>
+            {{ guardando ? 'Guardando...' : 'Guardar' }}
+          </button>
+          
+          <button class="btn-primary" (click)="siguientePregunta()" *ngIf="preguntaActualIndex < totalPreguntas - 1">
+            Siguiente
+            <i class="material-icons">chevron_right</i>
+          </button>
+          
+          <button class="btn-success" (click)="finalizarChecklist()" *ngIf="preguntaActualIndex === totalPreguntas - 1">
+            <i class="material-icons">check_circle</i>
+            Finalizar Checklist
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mini navegación de preguntas -->
+    <div class="preguntas-mini-nav">
+      <div class="mini-pregunta" 
+           *ngFor="let pregunta of checklistActivo.preguntas; let i = index"
+           [class.active]="i === preguntaActualIndex"
+           [class.respondida]="respuestasArray.at(i).get('respuesta')?.value"
+           (click)="preguntaActualIndex = i">
+        <span>{{ i + 1 }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================== -->
+  <!-- VISTA: HISTORIAL -->
+  <!-- =========================================== -->
+  <div class="historial-container" *ngIf="modoVista === 'historial' && !loading">
+    
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Checklist</th>
+            <th>Área</th>
+            <th>Ejecutado por</th>
+            <th>Fecha</th>
+            <th>Estado</th>
+            <th>Progreso</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of historial">
+            <td>
+              <strong>{{ item.checklist_nombre }}</strong>
+            </td>
+            <td>{{ item.area }}</td>
+            <td>{{ item.ejecutado_por }}</td>
+            <td>{{ item.fecha_ejecucion | date:'dd/MM/yyyy HH:mm' }}</td>
+            <td>
+              <span class="badge" [ngClass]="getEstadoBadgeClass(item.estado)">
+                {{ item.estado }}
+              </span>
+            </td>
+            <td>
+              <div class="progreso-mini">
+                <span>{{ item.respuestas_ok }}/{{ item.total_preguntas }}</span>
+                <div class="barra-mini">
+                  <div class="fill-mini" [style.width.%]="(item.respuestas_ok / item.total_preguntas) * 100"></div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <button class="btn-icon" (click)="verDetalle(item.id_ejecucion)" title="Ver detalle">
+                <i class="material-icons">visibility</i>
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="historial.length === 0">
+            <td colspan="7" class="text-center">No hay historial de ejecuciones</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- =========================================== -->
+  <!-- VISTA: DETALLE DE EJECUCIÓN -->
+  <!-- =========================================== -->
+  <div class="detalle-container" *ngIf="modoVista === 'detalle' && detalleEjecucion && !loading">
+    
+    <div class="detalle-header">
+      <button class="btn-back" (click)="volverAHistorial()">
+        <i class="material-icons">arrow_back</i>
+        Volver al historial
+      </button>
+    </div>
+
+    <div class="detalle-info-card">
+      <h2>{{ detalleEjecucion.info.checklist_nombre }}</h2>
+      <p class="descripcion">{{ detalleEjecucion.info.descripcion }}</p>
+      
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="label">Área:</span>
+          <span class="value">{{ detalleEjecucion.info.area }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Ejecutado por:</span>
+          <span class="value">{{ detalleEjecucion.info.ejecutado_por }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Fecha:</span>
+          <span class="value">{{ detalleEjecucion.info.fecha_ejecucion | date:'dd/MM/yyyy HH:mm' }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Estado:</span>
+          <span class="badge" [ngClass]="getEstadoBadgeClass(detalleEjecucion.info.estado)">
+            {{ detalleEjecucion.info.estado }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="respuestas-lista">
+      <h3>Respuestas</h3>
+      
+      <div class="respuesta-item" *ngFor="let resp of detalleEjecucion.respuestas; let i = index">
+        <div class="respuesta-numero">{{ i + 1 }}</div>
+        <div class="respuesta-contenido">
+          <div class="pregunta">{{ resp.pregunta }}</div>
+          <div class="respuesta-valor">
+            <strong>Respuesta:</strong> {{ resp.respuesta || 'No respondida' }}
+          </div>
+          <div class="observaciones-valor" *ngIf="resp.observaciones">
+            <strong>Observaciones:</strong> {{ resp.observaciones }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
