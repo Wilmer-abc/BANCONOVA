@@ -23,9 +23,9 @@ router.get('/resumen', verificarToken, async (req, res) => {
     let incidentes = [{ total: 0 }];
     
     try {
-      [ejecuciones] = await db.query('SELECT COUNT(*) as total FROM ejecuciones_checklist');
+      [ejecuciones] = await db.query('SELECT COUNT(*) as total FROM ejecucion_checklist');
     } catch (e) {
-      console.log('Tabla ejecuciones_checklist no existe');
+      console.log('Tabla ejecucion_checklist no existe');
     }
     
     try {
