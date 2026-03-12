@@ -3,11 +3,12 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 
-// rutas de usuarios
+// rutas importadas
 const usuariosRoutes = require('./routes/usuarios.routes.js');
 const areasRoutes = require('./routes/areas.routes.js');
 const dashboardRoutes = require('./routes/dashboard.js'); 
-const checklistRoutes = require('./routes/checklist.routes.js');
+const checklistRoutes = require('./routes/checklist.routes');
+const ejecucionChecklistRoutes = require('./routes/ejecucionChecklist.routes.js');
 dotenv.config();
 
 const app = express();
@@ -18,11 +19,12 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Rutas
+// utilizar Rutas
 app.use('/auth', usuariosRoutes); 
 app.use('/api/areas', areasRoutes); 
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/checklist', checklistRoutes);
+app.use('/api/ejecutar-checklist', ejecucionChecklistRoutes);
 
 // Ruta de prueba
 app.get('/', (req, res) => {
