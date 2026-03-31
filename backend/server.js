@@ -9,6 +9,7 @@ const areasRoutes = require('./routes/areas.routes.js');
 const dashboardRoutes = require('./routes/dashboard.js'); 
 const checklistRoutes = require('./routes/checklist.routes');
 const ejecucionChecklistRoutes = require('./routes/ejecucionChecklist.routes.js');
+const formularioRoutes = require('./routes/formulario.routes.js');
 dotenv.config();
 
 const app = express();
@@ -25,6 +26,7 @@ app.use('/api/areas', areasRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/checklist', checklistRoutes);
 app.use('/api/ejecutar-checklist', ejecucionChecklistRoutes);
+app.use('/api/formulario', formularioRoutes);
 
 // Ruta de prueba
 app.get('/', (req, res) => {
