@@ -1,0 +1,361 @@
+/* ===== VARIABLES Y BASE ===== */
+:root {
+  --color-primary: #0A2472;
+  --color-secondary: #0E6BA8;
+  --color-bg-light: #f8f9fa;
+  --color-text-muted: #6c757d;
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.05);
+  --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.1);
+  --radius-card: 12px;
+  --radius-btn: 8px;
+}
+
+.container-fluid {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ===== HEADER ===== */
+/* Sobreescribimos el header del HTML para que se vea como el del checklist */
+.d-flex.justify-content-between {
+  background: white;
+  padding: 16px 24px;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  margin-bottom: 24px;
+  align-items: center;
+}
+
+h2 {
+  color: var(--color-primary);
+  font-size: 1.8rem;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+h2 i {
+  color: var(--color-secondary);
+  font-size: 2.2rem;
+}
+
+/* ===== BOTONES ===== */
+.btn {
+  border-radius: var(--radius-btn);
+  padding: 10px 20px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Botón Primario (Azul Oscuro) */
+.btn-primary {
+  background-color: var(--color-primary) !important;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--color-secondary) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(10, 36, 114, 0.2);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Botón Secundario (Gris) */
+.btn-secondary {
+  background-color: #6c757d !important;
+  color: white;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #5a6268 !important;
+}
+
+/* Botón Success (Verde) */
+.btn-success {
+  background-color: #28A745 !important;
+  color: white;
+}
+
+.btn-success:hover {
+  background-color: #218838 !important;
+  transform: translateY(-2px);
+}
+
+/* Botones Outline (Para las tarjetas) */
+.btn-outline-primary {
+  border: 1px solid var(--color-secondary);
+  color: var(--color-secondary);
+  background: transparent;
+}
+
+.btn-outline-primary:hover {
+  background: var(--color-secondary);
+  color: white;
+}
+
+.btn-outline-info {
+  border: 1px solid #17a2b8;
+  color: #17a2b8;
+  background: transparent;
+}
+
+.btn-outline-info:hover {
+  background: #17a2b8;
+  color: white;
+}
+
+.btn-outline-secondary {
+  border: 1px solid #6c757d;
+  color: #6c757d;
+  background: transparent;
+}
+
+.btn-outline-secondary:hover {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-outline-danger {
+  border: 1px solid #dc3545;
+  color: #dc3545;
+  background: transparent;
+}
+
+.btn-outline-danger:hover {
+  background: #dc3545;
+  color: white;
+}
+
+/* Botones pequeños (sm) */
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.875rem;
+}
+
+/* ===== TARJETAS (CARDS) ===== */
+.card {
+  background: white;
+  border: none;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  transition: all 0.3s ease;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+
+.card-header {
+  background-color: var(--color-bg-light);
+  border-bottom: 1px solid #e9ecef;
+  padding: 20px 24px;
+  color: var(--color-primary);
+  font-weight: 600;
+  font-size: 1.2rem;
+}
+
+.card-body {
+  padding: 24px;
+}
+
+.card-footer {
+  background-color: var(--color-bg-light);
+  border-top: 1px solid #e9ecef;
+  padding: 16px 24px;
+}
+
+/* Botones dentro de tarjetas */
+.card-footer .btn-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.card-footer .btn-group .btn {
+  flex: 1; /* Ocupan el mismo espacio */
+  min-width: 80px;
+}
+
+/* ===== FORMULARIOS E INPUTS ===== */
+.form-label {
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 8px;
+  font-size: 0.95rem;
+}
+
+.form-control, .form-select {
+  border: 1px solid #dee2e6;
+  border-radius: var(--radius-btn);
+  padding: 10px 12px;
+  font-size: 1rem;
+  transition: all 0.3s;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 0 3px rgba(14, 107, 168, 0.15);
+  outline: none;
+}
+
+/* Estilos para inputs inválidos */
+.is-invalid {
+  border-color: #dc3545 !important;
+}
+
+.invalid-feedback {
+  color: #dc3545;
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
+
+/* Contenedores de preguntas (borde gris claro) */
+.border.rounded {
+  border: 1px solid #e9ecef !important;
+  border-radius: var(--radius-card) !important;
+  background-color: white;
+  margin-bottom: 16px;
+  transition: all 0.3s;
+}
+
+.border.rounded:hover {
+  border-color: var(--color-secondary) !important;
+  background-color: #fcfcfc;
+}
+
+/* Áreas de opciones dentro de preguntas */
+.bg-light {
+  background-color: #f8f9fa !important;
+  border-radius: 8px;
+  border: 1px solid #e9ecef !important;
+  padding: 16px;
+}
+
+/* ===== TABLAS ===== */
+.table-responsive {
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  background: white;
+}
+
+.table {
+  margin-bottom: 0;
+}
+
+.table thead th {
+  background-color: var(--color-bg-light);
+  color: var(--color-primary);
+  border-bottom: 2px solid #dee2e6;
+  padding: 16px;
+  font-weight: 600;
+}
+
+.table tbody td {
+  padding: 16px;
+  vertical-align: middle;
+  border-bottom: 1px solid #e9ecef;
+  color: #333;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.table-hover tbody tr:hover {
+  background-color: rgba(14, 107, 168, 0.05);
+}
+
+/* ===== ALERTAS ===== */
+.alert {
+  border-radius: var(--radius-btn);
+  border: none;
+  box-shadow: var(--shadow-card);
+}
+
+.alert-warning {
+  background-color: #FFF3CD;
+  color: #856404;
+}
+
+/* ===== CHECKBOXES Y RADIOS ===== */
+.form-check-input:checked {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.form-check-input:focus {
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 0 0.2rem rgba(14, 107, 168, 0.25);
+}
+
+.form-check-label {
+  color: #333;
+  cursor: pointer;
+}
+
+/* ===== SPINNER ===== */
+.spinner-border {
+  color: var(--color-primary);
+}
+
+/* ===== SCROLLBAR PERSONALIZADO ===== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .container-fluid {
+    padding: 16px;
+  }
+  
+  .d-flex.justify-content-between {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .card-footer .btn-group {
+    flex-direction: column;
+  }
+  
+  .card-footer .btn-group .btn {
+    width: 100%;
+    margin-bottom: 8px;
+  }
+
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+}

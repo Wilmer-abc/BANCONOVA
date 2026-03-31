@@ -1,0 +1,356 @@
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+      <i class="fas fa-file-alt me-2"></i>
+      @if (modo === 'lista') {
+        Formularios
+      } @else if (modo === 'crear') {
+        Crear Formulario
+      } @else if (modo === 'editar') {
+        Editar Formulario
+      } @else if (modo === 'responder') {
+        Responder Formulario
+      } @else if (modo === 'ver-respuestas') {
+        Respuestas del Formulario
+      }
+    </h2>
+    
+    @if (modo === 'lista') {
+      <div>
+        <button class="btn btn-primary" (click)="cambiarModo('crear')">
+          <i class="fas fa-plus me-2"></i>Nuevo Formulario
+        </button>
+      </div>
+    }
+    
+    @if (modo !== 'lista') {
+      <div>
+        <button class="btn btn-secondary" (click)="cambiarModo('lista')">
+          <i class="fas fa-arrow-left me-2"></i>Volver
+        </button>
+      </div>
+    }
+  </div>
+
+  <!-- Loading -->
+  @if (loading) {
+    <div class="text-center my-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Cargando...</span>
+      </div>
+    </div>
+  }
+
+  <!-- Lista de Formularios -->
+  @if (modo === 'lista' && !loading) {
+    <div class="row">
+      @for (formulario of formularios; track formulario.id_formulario) {
+        <div class="col-md-6 col-lg-4 mb-4">
+          <div class="card h-100">
+            <div class="card-body">
+              <h5 class="card-title">{{ formulario.nombre }}</h5>
+              <p class="card-text">{{ formulario.descripcion }}</p>
+              <p class="card-text">
+                <small class="text-muted">
+                  <i class="fas fa-user me-1"></i>{{ formulario.creador_nombre || 'Desconocido' }}<br>
+                  <i class="fas fa-calendar me-1"></i>{{ formulario.fecha_creacion | date:'dd/MM/yyyy' }}
+                </small>
+              </p>
+            </div>
+            <div class="card-footer bg-transparent">
+              <div class="btn-group w-100">
+                <button class="btn btn-outline-primary btn-sm" (click)="router.navigate(['/formularios/responder', formulario.id_formulario])">
+                  <i class="fas fa-pen me-1"></i>Responder
+                </button>
+                <button class="btn btn-outline-info btn-sm" (click)="router.navigate(['/formularios/respuestas', formulario.id_formulario])">
+                  <i class="fas fa-chart-bar me-1"></i>Ver Respuestas
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" (click)="router.navigate(['/formularios/editar', formulario.id_formulario])">
+                  <i class="fas fa-edit me-1"></i>Editar
+                </button>
+                <button class="btn btn-outline-danger btn-sm" (click)="eliminarFormulario(formulario.id_formulario!)">
+                  <i class="fas fa-trash me-1"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      } @empty {
+        <div class="col-12 text-center py-5">
+          <i class="fas fa-file-alt fa-4x text-muted mb-3"></i>
+          <h5 class="text-muted">No hay formularios creados</h5>
+          <button class="btn btn-primary mt-3" (click)="cambiarModo('crear')">
+            <i class="fas fa-plus me-2"></i>Crear Primer Formulario
+          </button>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Crear/Editar Formulario -->
+  @if ((modo === 'crear' || modo === 'editar') && !loading) {
+    <form [formGroup]="formularioForm" (ngSubmit)="guardarFormulario()">
+      <!-- Datos básicos -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Información del Formulario</h5>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label for="nombre" class="form-label">Nombre del Formulario *</label>
+            <input 
+              type="text" 
+              class="form-control" 
+              id="nombre" 
+              formControlName="nombre"
+              [class.is-invalid]="formularioForm.get('nombre')?.invalid && formularioForm.get('nombre')?.touched">
+            @if (formularioForm.get('nombre')?.invalid && formularioForm.get('nombre')?.touched) {
+              <div class="invalid-feedback">
+                El nombre es requerido
+              </div>
+            }
+          </div>
+          
+          <div class="mb-3">
+            <label for="descripcion" class="form-label">Descripción *</label>
+            <textarea 
+              class="form-control" 
+              id="descripcion" 
+              rows="3"
+              formControlName="descripcion"
+              [class.is-invalid]="formularioForm.get('descripcion')?.invalid && formularioForm.get('descripcion')?.touched"></textarea>
+            @if (formularioForm.get('descripcion')?.invalid && formularioForm.get('descripcion')?.touched) {
+              <div class="invalid-feedback">
+                La descripción es requerida
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Preguntas -->
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Preguntas</h5>
+          <button type="button" class="btn btn-sm btn-success" (click)="agregarPregunta()">
+            <i class="fas fa-plus me-2"></i>Agregar Pregunta
+          </button>
+        </div>
+        <div class="card-body">
+          @if (preguntasArray.length === 0) {
+            <div class="text-center py-4">
+              <p class="text-muted mb-0">No hay preguntas agregadas</p>
+            </div>
+          }
+
+          @for (pregunta of preguntasArray.controls; track $index; let i = $index) {
+            <div class="mb-4 p-3 border rounded">
+              <div formArrayName="preguntas">
+                <div [formGroupName]="i" class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Pregunta {{ i + 1 }} *</label>
+                    <input type="text" class="form-control" formControlName="texto" placeholder="Escribe tu pregunta">
+                  </div>
+                  
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label">Tipo de Respuesta *</label>
+                    <select class="form-select" formControlName="tipo">
+                      @for (tipo of tiposRespuesta; track tipo.valor) {
+                        <option [value]="tipo.valor">{{ tipo.etiqueta }}</option>
+                      }
+                    </select>
+                  </div>
+                  
+                  <div class="col-md-2 mb-3 d-flex align-items-end">
+                    <button type="button" class="btn btn-danger btn-sm" (click)="eliminarPregunta(i)">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+
+                  <!-- Opciones para preguntas de selección -->
+                  @if (necesitaOpciones(pregunta.get('tipo')?.value)) {
+                    <div class="col-12 mt-2">
+                      <div class="border p-3 bg-light">
+                        <label class="form-label">Opciones:</label>
+                        <div formArrayName="opciones">
+                          @for (opcion of getOpciones(i).controls; track $index; let j = $index) {
+                            <div class="input-group mb-2">
+                              <input type="text" class="form-control" [formControlName]="j" placeholder="Opción {{ j + 1 }}">
+                              <button type="button" class="btn btn-outline-danger" (click)="eliminarOpcion(i, j)">
+                                <i class="fas fa-times"></i>
+                              </button>
+                            </div>
+                          }
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary mt-2" (click)="agregarOpcion(i)">
+                          <i class="fas fa-plus me-2"></i>Agregar Opción
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Botones -->
+      <div class="text-end">
+        <button type="button" class="btn btn-secondary me-2" (click)="cambiarModo('lista')">
+          Cancelar
+        </button>
+        <button type="submit" class="btn btn-primary" [disabled]="formularioForm.invalid || loading">
+          @if (loading) {
+            <span class="spinner-border spinner-border-sm me-2"></span>
+          }
+          {{ modo === 'crear' ? 'Crear Formulario' : 'Actualizar Formulario' }}
+        </button>
+      </div>
+    </form>
+  }
+
+  <!-- Responder Formulario -->
+  @if (modo === 'responder' && !loading) {
+    @if (yaRespondio) {
+      <div class="alert alert-warning text-center">
+        <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+        <h5>Ya has respondido este formulario</h5>
+        <p>No puedes enviar otra respuesta.</p>
+        <button class="btn btn-primary mt-3" (click)="cambiarModo('lista')">
+          Volver a la lista
+        </button>
+      </div>
+    }
+
+    @if (!yaRespondio && formularioActual) {
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">{{ formularioActual.nombre }}</h5>
+        </div>
+        <div class="card-body">
+          <p class="text-muted">{{ formularioActual.descripcion }}</p>
+          
+          <form [formGroup]="respuestasForm" (ngSubmit)="enviarRespuestas()">
+            @for (pregunta of formularioActual.preguntas; track pregunta.id_pregunta; let i = $index) {
+              <div class="mb-4">
+                <label class="form-label fw-bold">{{ i + 1 }}. {{ pregunta.pregunta }}</label>
+                
+                <!-- Input según el tipo -->
+                @switch (pregunta.tipo_respuesta) {
+                  @case ('texto') {
+                    <input type="text" class="form-control" [formControlName]="'pregunta_' + pregunta.id_pregunta">
+                  }
+                  @case ('textarea') {
+                    <textarea class="form-control" rows="3" [formControlName]="'pregunta_' + pregunta.id_pregunta"></textarea>
+                  }
+                  @case ('numero') {
+                    <input type="number" class="form-control" [formControlName]="'pregunta_' + pregunta.id_pregunta">
+                  }
+                  @case ('email') {
+                    <input type="email" class="form-control" [formControlName]="'pregunta_' + pregunta.id_pregunta">
+                  }
+                  @case ('fecha') {
+                    <input type="date" class="form-control" [formControlName]="'pregunta_' + pregunta.id_pregunta">
+                  }
+                  @case ('select') {
+                    <select class="form-select" [formControlName]="'pregunta_' + pregunta.id_pregunta">
+                      <option value="">Seleccione una opción</option>
+                      @for (opcion of pregunta.opciones; track opcion) {
+                        <option [value]="opcion">{{ opcion }}</option>
+                      }
+                    </select>
+                  }
+                  @case ('radio') {
+                    <div class="mt-2">
+                      @for (opcion of pregunta.opciones; track opcion) {
+                        <div class="form-check">
+                          <input class="form-check-input" 
+                                 type="radio" 
+                                 [id]="'opcion_' + pregunta.id_pregunta + '_' + opcion"
+                                 [value]="opcion"
+                                 [formControlName]="'pregunta_' + pregunta.id_pregunta">
+                          <label class="form-check-label" [for]="'opcion_' + pregunta.id_pregunta + '_' + opcion">
+                            {{ opcion }}
+                          </label>
+                        </div>
+                      }
+                    </div>
+                  }
+                  @case ('checkbox') {
+                    <div class="mt-2">
+                      @for (opcion of pregunta.opciones; track opcion) {
+                        <div class="form-check">
+                          <input class="form-check-input" 
+                                 type="checkbox" 
+                                 [id]="'opcion_' + pregunta.id_pregunta + '_' + opcion"
+                                 [value]="opcion"
+                                 (change)="onCheckboxChange($event, pregunta.id_pregunta)">
+                          <label class="form-check-label" [for]="'opcion_' + pregunta.id_pregunta + '_' + opcion">
+                            {{ opcion }}
+                          </label>
+                        </div>
+                      }
+                    </div>
+                  }
+                }
+              </div>
+            }
+
+            <div class="text-end">
+              <button type="submit" class="btn btn-primary" [disabled]="respuestasForm.invalid || loading">
+                @if (loading) {
+                  <span class="spinner-border spinner-border-sm me-2"></span>
+                }
+                Enviar Respuestas
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    }
+  }
+
+  <!-- Ver Respuestas -->
+  @if (modo === 'ver-respuestas' && !loading) {
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Respuestas del Formulario</h5>
+      </div>
+      <div class="card-body">
+        @if (respuestas.length === 0) {
+          <div class="text-center py-4">
+            <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+            <p class="text-muted">No hay respuestas para este formulario</p>
+          </div>
+        }
+
+        @if (respuestas.length > 0) {
+          <div class="table-responsive">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Usuario</th>
+                  <th>Pregunta</th>
+                  <th>Respuesta</th>
+                  <th>Fecha</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (respuesta of respuestas; track respuesta.id_respuesta) {
+                  <tr>
+                    <td>{{ respuesta.usuario_nombre }}<br><small>{{ respuesta.usuario_correo }}</small></td>
+                    <td>{{ respuesta.pregunta }}</td>
+                    <td>{{ respuesta.respuesta }}</td>
+                    <td>{{ respuesta.fecha | date:'dd/MM/yyyy HH:mm' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>
