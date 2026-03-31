@@ -222,28 +222,31 @@ export class DashboardComponent implements OnInit {
     }
     
     // Si quieres manejar rutas específicas
-    switch(route) {
-      case '/dashboard/checklist':
-        console.log('Mostrando checklist...');
-        break;
-      case '/dashboard/incidentes':
-        console.log('Mostrando incidentes...');
-        break;
-      case '/dashboard/formularios':
-        console.log('Mostrando formularios...');
-        break;
-      case '/dashboard/usuarios':
-        console.log('Mostrando usuarios...');
-        break;
-      case '/dashboard/auditoria':
-        console.log('Mostrando auditoría...');
-        break;
-      case '/dashboard/configuracion':
-        console.log('Mostrando configuración...');
-        break;
-      default:
-        console.log('Ruta no específica:', route);
-    }
+  switch(route) {
+    case '/dashboard/checklist':
+      console.log('Mostrando checklist...');
+      break;
+
+    case '/dashboard/incidentes':
+      console.log('Mostrando incidentes...');
+      break;
+
+    case '/dashboard/formularios':
+      console.log('Mostrando formularios...');
+      break;
+
+    case '/dashboard/formularios/crear':
+      console.log('Creando formulario...');
+      break;
+
+    case '/dashboard/usuarios':
+      console.log('Mostrando usuarios...');
+      break;
+
+    default:
+      console.log('Ruta no específica:', route);
+  }
+
   }
 
   toggleSidebarMobile() {
